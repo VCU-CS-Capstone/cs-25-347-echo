@@ -19,8 +19,7 @@
    - Meet with sponsor to discuss possible solutions and get feedback
 
 ## 3) Issues, problems or concerns ##
-   - student C needs to learn java
-   - database repository costs big $$$
+   - No issues 
    
 
 
