@@ -1,10 +1,8 @@
-# *Your Project Description*
-## *Sponsoring Company or Organization*
-## *Short Project Description*
-The directory structure in this GitHub is to allow the project to have all its resources self-contained.
-Open Source software should not just be a repository of code.  There are a number of directories to help you and others who will 
-follow in your footsteps.  It'll also allow the Linux Foundation OMP Mentorship program to keep track of your project and get
-a better understanding of the problems you encountered during the development of this project. 
+# ECHO- Enhanced Collaboration for Human-Robot Operations
+## VCU College of Engineering
+## Project Description
+Building on previous Capstone work in proximity management (CS 24-316, https://drive.google.com/drive/folders/102xodVRIKHJ3VPquSnvWalnw2Lpgj9ff), our project will refine the sensing and control systems of industrial robots, enabling real-time adjustments to movement, position, and speed based on the human user’s proximity, orientation, and actions. This system will rely on real-time location data, velocity, and trajectory tracking to enable robots to dynamically respond to human presence, more effectively collaborate, and enhance both safety and efficiency. The solution will integrate a turn-based interaction protocol, allowing robots and humans to collaborate on tasks like constructing a tower of alternating red and blue blocks. Vision systems will classify and locate blocks in real-time, while task-planning algorithms optimize the sequence of actions, minimizing unnecessary movements. To ensure smooth collaboration, visual and auditory cues, as well as proximity sensors, will coordinate turns and maintain safe working zones. Additionally, the system will feature an emergency stop mechanism and a user-friendly interface, ensuring clear communication and real-time feedback between the robot and human operator.
+
 
 | Folder | Description |
 |---|---|
@@ -14,13 +12,11 @@ a better understanding of the problems you encountered during the development of
 | Status Reports | Project management documentation - weekly reports, milestones, etc. |
 | scr | Source code - create as many subdirectories as needed |
 
-**Note:** Commits behind this fork could be automatically synced, meaning that changes made in the template are pushed into your repo. Please do not discard commits ahead (these are the updates you make to this repository).
-
 ## Project Team
-- *Mentor's Name*  - *Company Affliation* - Mentor
-- *Technical Advisor Name* - *Company Affliation* - Technical Advisor
-- *Faculty Advisor's Name* - *Department* - Faculty Advisor
-- *Student's Name* - *major* - Student Team Member
-- *Student's Name* - *major* - Student Team Member
-- *Student's Name* - *major* - Student Team Member
-- *Student's Name* - *major* - Student Team Member
+- *Shawn Brixey*  - *VCU College of Engineering* - Faculty Advisor
+- *Tamer Nadeem* - *VCU College of Engineering* - Technical Advisor
+- *Tamer Nadeem* - *VCU College of Engineering* - Faculty Advisor
+- *Ian Richards* - *Computer Science* - Student Team Member
+- *Ekta Shethna* - *Computer Science* - Student Team Member
+- *Gianni Bautista* - *Computer Science* - Student Team Member
+- *Samuel Sarzaba* - *Computer Science* - Student Team Member
