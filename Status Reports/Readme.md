@@ -11,9 +11,9 @@ Status Report Fall Week XX.md is a template for to copy-paste into new Status re
 
 | Document | Tasks | Accomplishments | Issues |
 |---|---|---|---|
-| Week 1 Status Report | We've accomplished a lot | We'll accomplish even more | No problems to report! |
-| Week 2 Status Report | | | |
-| Week 3 Status Report | | | |
+| Week 1 Status Report | Initial team meeting | Assigned designated roles and worked on team contract | No problems to report! |
+| Week 2 Status Report | Meet with project sponsor and faculty advisor| Met with project sponsor/faculty advisor and got background information on the project and scope | No problems to report! |
+| Week 3 Status Report | Research different sensor types that we can add on/replace to current sensor type, Explored more of the documentation left by the previous team and bring our findings to the sponsors | | |
 | Week 4 Status Report | | | |
 | Week 5 Status Report | | | |
 | Week 6 Status Report | | | |
