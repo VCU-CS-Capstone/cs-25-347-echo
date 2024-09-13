@@ -1,9 +1,9 @@
 # *CS 25-347 ECHO*
 
 **Students' Names:** 
-**Ian Richards**
-**Ekta Shethna**
-**Gianni Bautista**
+**Ian Richards,**
+**Ekta Shethna,**
+**Gianni Bautista,**
 **Samuel Sarzaba**
 
 **Mentor: Miles**
