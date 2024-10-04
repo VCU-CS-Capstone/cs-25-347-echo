@@ -17,7 +17,7 @@ Status Report Fall Week XX.md is a template for to copy-paste into new Status re
 | Week 4 Status Report | Spend some time researching different kinect v2 sensor robotics application, mmWave sensors and retroreflective bead technology | Team has decided to test out a couple of different sensors as possible solutions | |
 | Week 5 Status Report | Order/Test out the different sensor when they come in | Orders have been placed by sponsor | Waiting on product to test out |
 | Week 6 Status Report | Test and gain understanding of how to practically use the technologies/sensors that will be used| Downloaded Isaac Sim and got demo code from Miles. | Product has not arrived |
-| Week 7 Status Report | Test sensors that have arrived | Downloaded different SDK/dependencies for mmWave sensor to test.  | Tried to visualize mmWave data but ran into an issue where the visualizer can't connect to the COM ports of the mmWave sensor |
+| Week 7 Status Report | Test sensors that have arrived | Downloaded different SDK/dependencies for mmWave sensor to test.  | Tried to visualize mmWave data but ran into an issue where the visualizer can't connect to the COM ports of the mmWave sensor. And we are still waiting on the other sensors that was ordered to arrive. |
 | Week 8 Status Report | | | |
 | Week 9 Status Report | | | |
 | Week 10 Status Report | | | |
