@@ -1,25 +1,43 @@
-# *CS 25-347 ECHO*
+# CS 25-347 ECHO - Status Report
 
-**Students' Names:** 
-**Ian Richards,**
-**Ekta Shethna,**
-**Gianni Bautista,**
-**Samuel Sarzaba**
+## Fall 2023 - Week 1
 
-**Mentor: Miles**
+---
 
-**Faculty Advisor: Tamer Nadeem, Shawn Brixey**
+### Team Members
 
-## 1) Accomplishments this week ##
-   - Met as a team to get to know each other and decided on designated roles going forward.
-   - Met with faculty advisor/sponsor to discuss project and problem statement.
-   - Brainstorm as a team for possible solutions.
+- Ian Richards
+- Ekta Shethna
+- Gianni Bautista
+- Samuel Sarzaba
 
-## 2) Milestones to be completed next week ##
-   - Meet with sponsor to discuss possible solutions and get feedback
+### Project Leadership
 
-## 3) Issues, problems or concerns ##
-   - No issues 
-   
+**Faculty Advisors:**
 
+- Dr. Tamer Nadeem
+- Prof. Shawn Brixey
 
+**Project Mentor:** Miles
+
+---
+
+### Weekly Status Summary
+
+#### 1. Accomplishments
+
+- Conducted initial team meeting for introductions and role assignments
+- Held consultation with faculty advisor/sponsor regarding project scope and problem statement
+- Completed team brainstorming session for potential solutions
+
+#### 2. Next Week's Milestones
+
+- Schedule and conduct sponsor meeting to:
+  - Present potential solutions
+  - Gather feedback on proposed approaches
+
+#### 3. Issues and Concerns
+
+- No current issues or blockers identified
+
+---
