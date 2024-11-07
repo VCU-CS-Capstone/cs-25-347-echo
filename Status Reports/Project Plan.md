@@ -1,23 +1,24 @@
-# *CSnnn Project Name*
-## **Sponsor:**
+# CS 25-347 ECHO
 
-**Students' Names:**
+## Sponsor:
 
-**Mentor:**
+### Students' Names
 
-**Faculty Advisor:**
+### Mentor
 
-**Project:**
+### Faculty Advisor
 
-**Project Description:**
+### Project
 
-**Problem Definition:**
+### Project Description
 
-**Deliverables**
+### Problem Definition
 
-**Coding Plan**
+### Deliverables
 
-| Week | Tasks | Goals |
-|------|-------|-------|
-| _Week 1_ | _Task 1_ | _Goal 1_ |
-| ... | ... | ... |
+### Coding Plan
+
+| Week     | Tasks    | Goals    |
+| -------- | -------- | -------- |
+| *Week 1* | *Task 1* | *Goal 1* |
+| ...      | ...      | ...      |
