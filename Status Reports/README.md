@@ -23,7 +23,7 @@ Status Report Fall Week XX.md is a template for to copy-paste into new Status re
 | Week 9 Status Report | Backtrack through Dylan's documentation. | Drivers for mmWave have been installed. | Documentation is a little sparse, will have to fill in gaps along the way. |
 | Week 10 Status Report | Discuss possible sensor orientations/configurations, as well as use cases to expand upon. | Clearer understanding of how to approach our goal, and the steps we must take in order to achieve it. | Misdirection of how to approach making sensor configuration prior to meeting, however meeting with mentors cleared everything up. |
 | Week 11 Status Report | | | |
-| Week 12 Status Report | | | |
+| Week 12 Status Report | Review and improve poster layout, refine use case scenarios | Received detailed feedback on poster improvements, developed new human-robot interaction scenario focus | Need to address robot self-localization challenges and boolean logic backup plans |
 | Week 13 Status Report | | | |
 | Week 14 Status Report | | | |
 | Week 15 Status Report | | | |
