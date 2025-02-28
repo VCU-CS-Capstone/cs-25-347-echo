@@ -1,44 +1,25 @@
-# Magna - Unity Application for ABB Robot Control
+# Using Unity to define joints position in ABB robots
+_Last update: 10/26/2023_
 
-## Warning
-The organization and authors of this repository are not liable for any consequential damage or injury that any code or information available in this repository may produce to you or others. The code available in this repository should be used only for reading purposes as different robots and settings may act different during program execution. Use the code and information available here at your own risk, and always make sure you are following all the safety procedures recommended by your robot manufacturer. Robots can be dangerous if used inappropriately, be careful!
+### :warning: Warning 
+The organization and authors of this repository are not liable for any consequential damage or injury that any code or information available in this repository may produce to you or others. The code available in this repository should be used only for reading purposes as different robots and settings may act different during  program execution. Use the code and information available here at your own risk, and always make sure you are following all the safety procedures recommended by your robot manufacturer. Robots can be dangerous if used inappropriately, be careful!
 
 ## Requirements
-- Unity 2021.3.24f1
+In order to run this project, you need:
+- Unity (Version 2021.3.24f1)
 - An ABB robot controller running EGM to serve as your EGM client
 
-## Setup Instructions
-1. Clone this repository
-2. Open Unity Hub and add this project
-3. Open the project with Unity 2021.3.24f1
-4. Ensure your firewall allows Unity to send/receive network traffic
-5. If your ABB controller is not running EGM already, follow the [EGM setup tutorial](https://github.com/vcuse/egm-for-abb-robots/blob/main/EGM-Preparing-your-robot.pdf)
+## How to run this application?
+Import this project folder using Unity Hub and open the project using Unity 2021.3.24f1. Click on the play button available on the top of the Unity interface to run the program. Attach compattable CSV Files to move script
 
-## Running the Application
-1. Open the project in Unity
-2. Load the "RobotControll" scene in the Scenes folder
-3. Click the play button to run the program
-4. You can attach compatible CSV animation files to the UpdatedMove script
+If your virtual controller is not running EGM already, please refer to our [tutorial](https://github.com/vcuse/egm-for-abb-robots/blob/main/EGM-Preparing-your-robot.pdf) on how to setup your ABB robot for EGM communication.
 
-## Network Configuration
-- Default EGM port: 6510
-- Default UDPCOMM port: 6511
-- Default RaspberryPi port: 8000
+## What files in this project are related to EGM?
+If you are here just to check how we implemented EGM code that runs in Unity, the [Scripts](https://github.com/vcuse/egm-for-abb-robots/tree/main/Unity-Example/Assets/Scripts) folder is what you need. Inside of it you will find:
+- [EgmCommunication.cs](https://github.com/vcuse/egm-for-abb-robots/blob/main/Unity-Example/Assets/Scripts/EgmCommunication.cs) This file contains all the implementation used to receive messages from the ABB robot and to submit new joint values to it. Notice that in order to make it work in Unity, we attach this file to an empty object in our _SampleScene_ called _EgmCommunicator_, and fill the necessary scene components in the inspector of this empty object.
+- [Egm.cs](https://github.com/vcuse/egm-for-abb-robots/blob/main/WPF-Example/Egm.cs) This file contains the Abb.Egm library used in [EgmCommunication.cs](https://github.com/vcuse/egm-for-abb-robots/blob/main/Unity-Example/Assets/Scripts/EgmCommunication.cs) to write messages in EGM format. Notice that this file is generated automatically. To create your own version of this file, refer to the EGM manual provided by ABB (Section 3.2 - Building an EGM sensor communication endpoint) or follow our [tutorial](https://github.com/vcuse/egm-for-abb-robots/blob/main/EGM-Preparing-your-robot.pdf).
 
-## Key Scripts
-- `Scripts/EgmCommunication.cs`: Contains the implementation for communicating with the ABB robot via EGM
-- `Scripts/Egm.cs`: Contains the Abb.Egm library for formatting EGM messages
-- `Scripts/UpdatedMove.cs`: Handles robot movement based on CSV animation files
-- `Scripts/SendDataToRaspberryPi.cs`: Communication with Raspberry Pi
+## Notes from the author
+If you plan to create your own Unity application, don't forget to import Egm.cs to your project and install Google.Protobuf and Google.Protobuf.Tools **in your Unity project** (this is a requirement for Egm.cs). Don't use the NuGet Manager of Visual Studio for this type of application as it will not install it correctly inside the Unity project. I recommend [NuGetForUnity](https://github.com/GlitchEnzo/NuGetForUnity) as the alternative to install both libraries. 
 
-## Dependencies
-This project uses NuGetForUnity to manage the following dependencies:
-- Google.Protobuf (3.21.7)
-- Google.Protobuf.Tools (3.21.7)
-
-## Developer Notes
-If you're creating your own Unity application using EGM:
-1. Import Egm.cs to your project
-2. Install Google.Protobuf and Google.Protobuf.Tools using NuGetForUnity
-3. Allow Unity to communicate over the network in your firewall settings
-4. Be aware that ABB updates EGM in almost every RobotWare version
+Please don't forget to allow Unity to receive and submit messages over the network in your firewall. Keep in mind that ABB updates EGM in almost every RobotWare version, so please use this project as a reference but be aware that newer implementations might differ from it (for better).

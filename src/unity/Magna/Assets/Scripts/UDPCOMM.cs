@@ -17,6 +17,7 @@ namespace communication
 {
     public class UDPCOMM : MonoBehaviour
     {
+
         /* UDP port where EGM communication should happen (specified in RobotStudio) */
         public static int port = 6510;
         /* UDP client used to send messages from computer to robot */
@@ -26,7 +27,7 @@ namespace communication
          * is to connect your computer to the management port of the robot controller
          * using a network cable. */
         private IPEndPoint robotAddress;
-        /* IP address of the robot controller - can be configured in the Unity Inspector */
+
         public string robotIpAddress = "192.168.0.4";
 
         /* Variable used to count the number of messages sent */
@@ -36,9 +37,12 @@ namespace communication
         /* Robot cartesian position and rotation values */
         double x, y, z, rx, ry, rz;
         double xc, yc, zc;
-        double cz;
+        double cz; //initialize variables above
         double cx;
         double cy;
+        double crx;
+        double cry;
+        double crz;
         Vector3 angles;
 
         /* Current state of EGM communication (disconnected, connected or running) */
@@ -71,7 +75,7 @@ namespace communication
         /* (Unity) Update is called once per frame */
         void Update()
         {
-            cz = -cube.transform.position.z;
+            cz = -cube.transform.position.z; //initialize variables above
             cx = cube.transform.position.x;
             cy = cube.transform.position.y;
 
@@ -140,6 +144,8 @@ namespace communication
                     initialPositionDisplayed = true;
                     DisplayInitialPosition();
                 }
+
+                Debug.Log(egmState);
             }
             else
             {
@@ -156,12 +162,15 @@ namespace communication
                 if (initialXText != null) initialXText.text = "X: " + x.ToString("F2") + " mm";
                 if (initialYText != null) initialYText.text = "Y: " + y.ToString("F2") + " mm";
                 if (initialZText != null) initialZText.text = "Z: " + z.ToString("F2") + " mm";
-                if (initialRXText != null) initialRXText.text = "RX: " + rx.ToString("F2") + "°";
-                if (initialRYText != null) initialRYText.text = "RY: " + ry.ToString("F2") + "°";
-                if (initialRZText != null) initialRZText.text = "RZ: " + rz.ToString("F2") + "°";
+                if (initialRXText != null) initialRXText.text = "RX: " + rx.ToString("F2") + "�";
+                if (initialRYText != null) initialRYText.text = "RY: " + ry.ToString("F2") + "�";
+                if (initialRZText != null) initialRZText.text = "RZ: " + rz.ToString("F2") + "�";
 
                 // Show the panel with initial position
                 initialPositionPanel.SetActive(true);
+
+                Debug.Log("Initial robot position displayed - X:" + x + ", Y:" + y + ", Z:" + z +
+                          ", RX:" + rx + ", RY:" + ry + ", RZ:" + rz);
             }
         }
 
@@ -229,10 +238,12 @@ namespace communication
 
             planned_trajectory.Cartesian = cartesian_pos;
             message.Planned = planned_trajectory;
+            //Debug.Log("MSG MADE");
+
         }
-        
         public void cubeMove(double xx, double yy, double zz, double rrx, double rry, double rrz)
         /*
+
         Summary: Retrieves x,y, and z data of cube location, and transcribes this information into coordinates to send
         to robot controller. Once the coordinates are set, SendUDPMessage() is utilized to build and send a UDP packet 
         that contains these coordinates to the robot controller.
@@ -243,6 +254,7 @@ namespace communication
             - xx: X rotational position of cube
             - yy: Y rotational position of cube
             - zz: Z rotational position of cube
+
         */
         {
             y = (xx * 1000) + yc;//yC + deviation;
@@ -251,6 +263,7 @@ namespace communication
             rx = rrx;
             ry = rry;
             rz = rrz;
+            //Debug.Log("x: " + x + "\ny: " + y + "\nz: " + z + "\nrx: " + rx + "\nry: " + ry + "\nrz: " + rz);
             SendPoseMessageToRobot(x, y, z, rx, ry, rz);
         }
     }
