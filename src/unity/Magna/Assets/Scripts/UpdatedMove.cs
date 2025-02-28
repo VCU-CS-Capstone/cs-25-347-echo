@@ -23,8 +23,7 @@ public class UpdatedMove : MonoBehaviour
     private float sety;
     private float setz;
     private int currentAnimationIndex = 0;
-    private float time = 0;
-    public 
+    public
     void Start()
     {
         ReadString();
