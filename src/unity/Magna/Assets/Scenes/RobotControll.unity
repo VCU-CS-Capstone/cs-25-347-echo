@@ -123,6 +123,68 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &10410090
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 10410092}
+  - component: {fileID: 10410091}
+  - component: {fileID: 10410093}
+  m_Layer: 0
+  m_Name: GripperController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &10410091
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 10410090}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92c5d161e96b7bd4eb5927111bf69d8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gripperType: rg6
+  ipAddress: 192.168.1.1
+  port: 502
+  defaultForce: 400
+--- !u!4 &10410092
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 10410090}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 11
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &10410093
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 10410090}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eb8cd521e13d26498ac769b9e1c30da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gripperController: {fileID: 10410091}
 --- !u!1 &32389537
 GameObject:
   m_ObjectHideFlags: 0
@@ -2196,7 +2258,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1323854164}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 17.071234, y: -2.821703, z: -3.1126032}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3677,6 +3739,7 @@ GameObject:
   - component: {fileID: 3797525683882037922}
   - component: {fileID: 3797525683882037925}
   - component: {fileID: 3797525683882037924}
+  - component: {fileID: 3797525683882037935}
   - component: {fileID: 3797525683882037934}
   m_Layer: 0
   m_Name: TCP
@@ -3692,7 +3755,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3797525683882037927}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 707dc4952f8761943b29c851677edc53, type: 3}
   m_Name: 
@@ -3700,6 +3763,20 @@ MonoBehaviour:
   cube: {fileID: 3797525683882037927}
   animations:
   - {fileID: 4900000, guid: 6074e20a9b8387d4c92ff9a190ccbc9f, type: 3}
+--- !u!114 &3797525683882037935
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3797525683882037927}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c25be8de22b73e24eb4938f358e9d56f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 1
+  useLocalSpace: 1
 --- !u!114 &3797525684604108928
 MonoBehaviour:
   m_ObjectHideFlags: 0
