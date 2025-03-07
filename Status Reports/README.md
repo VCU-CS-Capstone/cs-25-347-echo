@@ -33,11 +33,20 @@ Status Report Fall Week XX.md is a template for to copy-paste into new Status re
 
 | Document | Tasks | Accomplishments| Issues |
 |---|---|---|---|
-| Week 1 Status Report | | | |
-| Week 2 Status Report | | | |
-| Week 3 Status Report | | | |
-| Week 4 Status Report | | | |
-| Week 5 Status Report | | | |
+| Week 1 Status Report |Make a plan for the semester | Will be using Unity instead of Isaac Sim
+Input on how to enhance and simplify use case
+More information about how the expo will be set up|No issues |
+| Week 2 Status Report |Get the App to work on phone |Met with Miles to talk about the robot
+Got point cloud working in unity
+Got Miles app onto Gianni phone |No issues |
+| Week 3 Status Report |Work on plan for electromagnet |OnRobot send files for the gripper
+Ordered Electromagnet |No issues |
+| Week 4 Status Report |Set up electromagnet |Set up electromagnet to turn off and on upon button push
+Set the robot to move back and forth to simulate movements for Expo |No issues |
+| Week 5 Status Report |Work on gripper |Got gripper working
+Went through 3D printer orientation, now have access
+Nuitrack SDK works with RealSense, tracks well
+Brought Sam's PC to lab and showed off the Realsense and Nuitrack SDK for Dr. Nadeem and Prof. Brixey |No issues |
 | Week 6 Status Report | | | |
 | Week 7 Status Report | | | |
 | Week 8 Status Report | | | |
