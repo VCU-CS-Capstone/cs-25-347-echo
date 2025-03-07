@@ -19,7 +19,7 @@ namespace communication
     {
 
         /* UDP port where EGM communication should happen (specified in RobotStudio) */
-        public static int port = 6510;
+        public static int port = 6511;
         /* UDP client used to send messages from computer to robot */
         private UdpClient server = null;
         /* Endpoint used to store the network address of the ABB robot.
