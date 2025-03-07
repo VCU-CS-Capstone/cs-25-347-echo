@@ -154,7 +154,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gripperType: rg6
-  ipAddress: 192.168.1.1
+  ipAddress: 192.168.0.8
   port: 502
   defaultForce: 400
 --- !u!4 &10410092
