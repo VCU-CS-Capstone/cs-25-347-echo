@@ -7,6 +7,7 @@ using System.Collections;
 public class GripperAnimation : MonoBehaviour
 {
     [SerializeField] private GripperController gripperController;
+    [SerializeField] private Directional_Graph Graph;
     
     // Example method to demonstrate gripper usage
     public void DemonstrateGripper()
@@ -64,12 +65,14 @@ public class GripperAnimation : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.O))
         {
             StartCoroutine(OpenGripper());
+            Graph.AddGripCommand("o");
         }
         
         // Example: Press C to close the gripper
         if (Input.GetKeyDown(KeyCode.C))
         {
             StartCoroutine(CloseGripper());
+            Graph.AddGripCommand("c");
         }
         
         // Example: Press M to move the gripper to 50mm

@@ -5,6 +5,7 @@ using TMPro;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 
 public class UpdatedMove : MonoBehaviour
 {
@@ -23,7 +24,15 @@ public class UpdatedMove : MonoBehaviour
     private float sety;
     private float setz;
     private int currentAnimationIndex = 0;
-    public
+
+    public bool gripperOpens = true;
+
+    public void gripperOpen(bool o){
+        gripperOpens = o;
+
+    }
+    
+    [SerializeField] private GripperAnimation grippy;
     void Start()
     {
         ReadString();
@@ -37,7 +46,24 @@ public class UpdatedMove : MonoBehaviour
         set { _yourBooleanVariable = value; }
     }
 
+    // Add these variables at the top of the class
+    [SerializeField] private int framesPerUpdate = 1;
+    
     void FixedUpdate()
+    {
+        if (_yourBooleanVariable)
+        {
+            return;
+        }
+        
+        // Process multiple frames per update
+        for (int i = 0; i < framesPerUpdate; i++)
+        {
+            ProcessFrame();
+        }
+    }
+
+    async Task ProcessFrame()
     {
         if (_yourBooleanVariable)
         {
@@ -48,39 +74,33 @@ public class UpdatedMove : MonoBehaviour
             {
                 GameObject fakeCube = cube;
                 string[] positions = lines[count].Split(',');
-                if (first)
-                {
-                    setx = float.Parse(positions[0]);
-                    sety = float.Parse(positions[1]);
-                    setz = float.Parse(positions[2]);
-                    first = false;
+                if(positions[0].Trim() == "o"){
+                    StartCoroutine(grippy.OpenGripper());
+                    // TODO: Wait until gripper open fully
+                } else if(positions[0].Trim() == "c"){
+                    StartCoroutine(grippy.CloseGripper());
+                    // TODO: Wait until gripper close fully 
+                    UnityEngine.Debug.Log("closing");
+                } else {
+                    set = fakeCube.transform.position;
+                    set.x = float.Parse(positions[1]);
+                    set.y = float.Parse(positions[2]);
+                    set.z = float.Parse(positions[3]);
+
+                    angles = cube.transform.eulerAngles;
+                    angles.x = float.Parse(positions[4]);
+                    angles.y = float.Parse(positions[5]);
+                    angles.z = float.Parse(positions[6]);
+                    fakeCube.transform.position = set;
+                    fakeCube.transform.eulerAngles = angles;
+                    cube = fakeCube;
                 }
-
-                set = fakeCube.transform.position;
-                set.x = float.Parse(positions[0]) - setx;
-                set.y = float.Parse(positions[1]) - sety;
-                set.z = float.Parse(positions[2]) - setz;
-
-                angles = cube.transform.eulerAngles;
-                angles.x = float.Parse(positions[3]);
-                angles.y = float.Parse(positions[4]);
-                angles.z = float.Parse(positions[5]);
-                fakeCube.transform.position = set;
-                fakeCube.transform.eulerAngles = angles;
-                cube = fakeCube;
+                
                 count++;
             }
             else
             {
-                var step = .01f * Time.deltaTime;
-                cube.transform.position = Vector3.MoveTowards(cube.transform.position, Transstart, step);
-                cube.transform.rotation = Quaternion.Lerp(cube.transform.rotation, Quaternion.LookRotation(new Vector3(0, 0, 0)), 10f * Time.deltaTime);
-
-                if (cube.transform.position == Transstart && cube.transform.eulerAngles == Anglestart)
-                {
-                    count = 0;
-                    SetNextAnimation();
-                }
+                count = 0;
             }
     }
 

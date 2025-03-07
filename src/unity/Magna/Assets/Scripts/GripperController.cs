@@ -11,6 +11,9 @@ public class GripperController : MonoBehaviour
     [SerializeField] private string gripperType = "rg6"; // "rg2" or "rg6"
     [SerializeField] private string ipAddress = "192.168.1.1";
     [SerializeField] private int port = 502;
+
+    [SerializeField] public UpdatedMove mover;
+    
     [SerializeField] private int defaultForce = 400; // Default force in 1/10 Newtons
     
     // Internal variables
@@ -256,7 +259,7 @@ public class GripperController : MonoBehaviour
         {
             yield return new WaitForSeconds(0.5f);
         }
-        
+        mover.gripperOpen(true);
         Debug.Log("Gripper fully opened");
     }
     
@@ -279,7 +282,7 @@ public class GripperController : MonoBehaviour
         {
             yield return new WaitForSeconds(0.5f);
         }
-        
+        mover.gripperOpen(false);
         Debug.Log("Gripper fully closed");
     }
     
