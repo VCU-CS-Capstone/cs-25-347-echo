@@ -76,7 +76,7 @@ namespace communication
             cx = cube.transform.position.x;
             cy = cube.transform.position.y;
 
-            cubeMove(cx, cy, cz, (-cube.transform.eulerAngles.z - 180), cube.transform.eulerAngles.x, (-cube.transform.eulerAngles.y - 180));
+            CubeMove(cx, cy, cz, (-cube.transform.eulerAngles.z - 180), cube.transform.eulerAngles.x, (-cube.transform.eulerAngles.y - 180));
         }
 
         public void startcom()
@@ -97,7 +97,7 @@ namespace communication
             try
             {
                 bytes = server.Receive(ref robotAddress);
-               
+
             }
             catch (SocketException e)
             {
@@ -119,7 +119,7 @@ namespace communication
             try
             {
                 bytes = server.Receive(ref robotAddress);
- 
+
             }
             catch (SocketException e)
             {
@@ -162,7 +162,7 @@ namespace communication
                 ry = message.FeedBack.Cartesian.Euler.Y;
                 rz = message.FeedBack.Cartesian.Euler.Z;
                 egmState = message.MciState.State.ToString();
-                cube.transform.position = new Vector3((float)y/1000,(float)z/1000,(float)-x/1000);
+                cube.transform.position = new Vector3((float)y / 1000, (float)z / 1000, (float)-x / 1000);
                 // Log the initial position if not already logged
                 if (!initialPositionLogged)
                 {
@@ -246,7 +246,7 @@ namespace communication
             //Debug.Log("MSG MADE");
 
         }
-        public void cubeMove(double xx, double yy, double zz, double rrx, double rry, double rrz)
+        public void CubeMove(double xx, double yy, double zz, double rrx, double rry, double rrz)
         /*
 
         Summary: Retrieves x,y, and z data of cube location, and transcribes this information into coordinates to send
@@ -262,8 +262,8 @@ namespace communication
 
         */
         {
-            y = (xx * 1000) ;//yC + deviation;
-            x = (zz * 1000) ;//xC;
+            y = (xx * 1000);//yC + deviation;
+            x = (zz * 1000);//xC;
             z = (yy * 1000);//zC;
             rx = rrx;
             ry = rry;

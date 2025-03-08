@@ -33,12 +33,6 @@ public class TaskProgrammer : MonoBehaviour
     
     [Header("UI References")]
     [SerializeField] private Button savePositionButton;
-    [Tooltip("If true, the saved task will open the gripper")]
-    [SerializeField] private bool saveWithOpenGripper = false;
-    [Tooltip("If true, the saved task will close the gripper")]
-    [SerializeField] private bool saveWithCloseGripper = false;
-    [Tooltip("Delay in seconds after the saved task")]
-    [SerializeField] private float saveTaskDelay = 0.5f;
     
     [Header("Task Sequence")]
     [SerializeField] private List<ProgrammedTask> tasks = new List<ProgrammedTask>();
@@ -47,7 +41,6 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private bool executeOnStart = false;
     [SerializeField] private bool repeatSequence = false;
     [SerializeField] private float moveSpeed = 2.0f;
-    [SerializeField] private float positionThreshold = 0.01f;
     
     [Header("Save Settings")]
     [SerializeField] private bool autoSave = true;
@@ -180,7 +173,8 @@ public class TaskProgrammer : MonoBehaviour
     /// </summary>
     private IEnumerator MoveToPosition(Vector3 targetPosition)
     {
-        while (Vector3.Distance(targetObject.transform.position, targetPosition) > positionThreshold)
+        // Move towards target position over time
+        while (Vector3.Distance(targetObject.transform.position, targetPosition) > 0.001f)
         {
             // Move towards target position
             targetObject.transform.position = Vector3.MoveTowards(
@@ -272,8 +266,8 @@ public class TaskProgrammer : MonoBehaviour
         // Get current position of the target object
         Vector3 currentPosition = targetObject.transform.position;
         
-        // Add a new task with the current position
-        AddTask(currentPosition, saveWithOpenGripper, saveWithCloseGripper, saveTaskDelay);
+        // Add a new task with the current position only (no gripper actions)
+        AddTask(currentPosition, false, false);
         
         Debug.Log($"Saved current position as task: {currentPosition}");
     }
