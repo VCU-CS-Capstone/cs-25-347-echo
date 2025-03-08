@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Shader Graphs_New Shader Graph
+  m_Shader: {fileID: -6465566751694194690, guid: 0498169471d8e734f9b08ca5cf3b61e3, type: 3}
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - Texture2D_9fddd32c51a84fe592deeb540353204e:
+        m_Texture: {fileID: 2800000, guid: 430c86e76e1b81146b5e544c7455681b, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - Texture2D_f3cd7fcb51464a198cd6a03f8163c79a:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DepthTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2DLOD_2c2d25b62b084ba9873a46d8f56e62e9_Texture_1:
+        m_Texture: {fileID: 10300, guid: 0000000000000000f000000000000000, type: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - Boolean_593265bf5e4c4c0b9f63888a092944ed: 1
+    - Vector1_01d55090db1646b6a15d80aa7585f7e2: -1
+    - Vector1_282637c920424fd2b90fdcac65024d88: 8.1
+    - Vector1_3bf873ae958048f687a8105ccc01d407: 1
+    - Vector1_3d06ce367bf64dcc9e0bf3de20651440: 0
+    - Vector1_c83623a1b5de4a7594ba5086ef82e322: 0
+    - Vector1_c83623a1b5de4a7594ba5086ef82e322_1: 0
+    - Vector1_c83623a1b5de4a7594ba5086ef82e322_2: 0
+    - Vector1_e63ab71160104ae8bdd3274ee4b1b2e4: 0
+    - _maxDepthSensor: 0
+    - _textureHeight: 0
+    - _textureWidth: 0
+    m_Colors:
+    - Color_e098fd99be8a4309a0553e46c4c64a7d: {r: 1, g: 1, b: 1, a: 1}
+    - Vector3_0339b5286f944f1db03712317045a480: {r: 1, g: 1, b: 1, a: 0}
+    - Vector3_0843367a15a749f4810482989db52120: {r: 0, g: 0, b: 0, a: 0}
+    - Vector3_186eb9f2871d44cd93d131cbd7aed74d: {r: 0, g: 0, b: 0, a: 0}
+    - Vector3_33862f5f6e8b486b91ffb1fd115c0e7a: {r: 0, g: 0, b: 0, a: 0}
+    - Vector3_4767c136252a40168e1e6dd88657c5e0: {r: 0, g: 0, b: 0, a: 0}
+    - Vector3_6d4e75f56cd2442bb8457a86441f7b56: {r: 1, g: 1, b: 1, a: 0}
+    - _CameraPosition: {r: 0, g: 0, b: 0, a: 0}
+    - _MainColor: {r: 1, g: 1, b: 1, a: 1}
+    - _MainTex: {r: 1, g: 1, b: 1, a: 0}
+  m_BuildTextureStacks: []
