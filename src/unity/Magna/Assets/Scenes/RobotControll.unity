@@ -315,14 +315,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 251167600}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.5, z: -1}
+  m_LocalRotation: {x: 0.11671381, y: 0.4213393, z: -0.054792497, w: 0.8976909}
+  m_LocalPosition: {x: -0.7095484, y: 0.6392558, z: -1.2123541}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 2
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 15, y: 0, z: 0}
 --- !u!1 &522346865
 GameObject:
   m_ObjectHideFlags: 0
@@ -357,10 +357,18 @@ MonoBehaviour:
   nativeAvatar: {fileID: 1252017586}
   jointDistanceTarget: {fileID: 8886566205146240232}
   savePositionButton: {fileID: 1351754141}
-  tasks: []
+  tasks:
+  - targetPosition: {x: 0, y: 0, z: 0}
+    openGripper: 0
+    closeGripper: 0
+    delayAfterAction: 0
+  - targetPosition: {x: 0, y: 0, z: 0}
+    openGripper: 0
+    closeGripper: 0
+    delayAfterAction: 0
   executeOnStart: 1
   repeatSequence: 1
-  baseSpeed: 0.1
+  baseSpeed: 0.2
   minSpeed: 0
   maxSpeed: 0.25
   distanceScalingFactor: 1
@@ -1523,7 +1531,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 6e17a09545baef74aa44dbcab03a95da, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
