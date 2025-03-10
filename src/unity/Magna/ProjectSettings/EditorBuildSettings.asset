@@ -4,5 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/RobotControll.unity
+    guid: 9ef869aaa06b98849b7eb4e4ea7d9495
   m_configObjects: {}
