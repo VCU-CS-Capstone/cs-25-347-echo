@@ -1,7 +1,8 @@
-﻿#region Description
+﻿﻿#region Description
 
 // The script performs a direct translation of the skeleton using only the position data of the joints.
 // Objects in the skeleton will be created when the scene starts.
+// Added options to rotate joints and scale the skeleton (distances between joints).
 
 #endregion
 
@@ -16,8 +17,16 @@ namespace NuitrackSDK.Tutorials.FirstProject
         string message = "";
 
         public nuitrack.JointType[] typeJoint;
-        GameObject[] CreatedJoint;
+        public GameObject[] CreatedJoint; // Made public to access from TaskProgrammer
         public GameObject PrefabJoint;
+
+        [Header("Skeleton Customization")]
+        [Tooltip("Rotation in degrees around each axis for the entire skeleton")]
+        public Vector3 skeletonRotation = Vector3.zero;
+
+        [Tooltip("Scale factor for distances between joints (skeleton size)")]
+        [Range(0.1f, 3.0f)]
+        public float skeletonScale = 1.0f;
 
         void Start()
         {
@@ -26,25 +35,59 @@ namespace NuitrackSDK.Tutorials.FirstProject
             {
                 CreatedJoint[q] = Instantiate(PrefabJoint);
                 CreatedJoint[q].transform.SetParent(transform);
+                CreatedJoint[q].SetActive(false); // Initially deactivate all joints
             }
             message = "Skeleton created";
         }
 
         void Update()
         {
-            if (NuitrackManager.Users.Current != null && NuitrackManager.Users.Current.Skeleton != null)
+            bool skeletonFound = NuitrackManager.sensorsData[NuitrackManager.sensorsData.Count > 0 ? 0 : 0].Users.Current != null &&
+                                NuitrackManager.sensorsData[NuitrackManager.sensorsData.Count > 0 ? 0 : 0].Users.Current.Skeleton != null;
+
+            if (skeletonFound)
             {
                 message = "Skeleton found";
 
                 for (int q = 0; q < typeJoint.Length; q++)
                 {
-                    UserData.SkeletonData.Joint joint = NuitrackManager.Users.Current.Skeleton.GetJoint(typeJoint[q]);
-                    CreatedJoint[q].transform.localPosition = joint.Position;
+                    // Activate the joint if it was inactive
+                    if (!CreatedJoint[q].activeSelf)
+                    {
+                        CreatedJoint[q].SetActive(true);
+                    }
+
+                    UserData.SkeletonData.Joint joint = NuitrackManager.sensorsData[0].Users.Current.Skeleton.GetJoint(typeJoint[q]);
+
+                    // Get the original position
+                    Vector3 originalPosition = joint.Position;
+
+                    // Apply skeleton rotation to the position (rotates the entire skeleton)
+                    if (skeletonRotation != Vector3.zero)
+                    {
+                        Quaternion rotation = Quaternion.Euler(skeletonRotation);
+                        originalPosition = rotation * originalPosition;
+                    }
+
+                    // Scale the position to adjust distances between joints
+                    Vector3 scaledPosition = originalPosition * skeletonScale;
+
+                    // Apply position with scaling and skeleton rotation
+                    CreatedJoint[q].transform.localPosition = scaledPosition;
                 }
             }
             else
             {
                 message = "Skeleton not found";
+                
+                // Deactivate all joints when skeleton is not found
+                for (int q = 0; q < typeJoint.Length; q++)
+                {
+                    if (CreatedJoint[q].activeSelf)
+                    {
+                        CreatedJoint[q].SetActive(false);
+                    }
+                }
             }
         }
 

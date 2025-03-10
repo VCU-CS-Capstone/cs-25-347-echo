@@ -30,6 +30,8 @@ public class TaskProgrammer : MonoBehaviour
     [Header("References")]
     [SerializeField] private GameObject targetObject;
     [SerializeField] private GripperController gripperController;
+    [SerializeField] private NuitrackSDK.Tutorials.FirstProject.NativeAvatar nativeAvatar;
+    [SerializeField] private GameObject jointDistanceTarget;
     
     [Header("UI References")]
     [SerializeField] private Button savePositionButton;
@@ -40,7 +42,13 @@ public class TaskProgrammer : MonoBehaviour
     [Header("Execution Settings")]
     [SerializeField] private bool executeOnStart = false;
     [SerializeField] private bool repeatSequence = false;
-    [SerializeField] private float moveSpeed = 2.0f;
+    [SerializeField] private float baseSpeed = 2.0f;
+    [SerializeField] private float minSpeed = 0.5f;
+    [SerializeField] private float maxSpeed = 5.0f;
+    [SerializeField] private float distanceScalingFactor = 1.0f;
+    [SerializeField] private bool useJointDistanceScaling = true;
+    [SerializeField] [Tooltip("Distance threshold in meters. Speed is only adjusted when joints are closer than this")]
+    private float jointDistanceThreshold = 1.5f;
     
     [Header("Save Settings")]
     [SerializeField] private bool autoSave = true;
@@ -48,7 +56,6 @@ public class TaskProgrammer : MonoBehaviour
     
     private bool isExecuting = false;
     private string SaveFilePath => Path.Combine(Application.persistentDataPath, saveFileName);
-    
     private void Start()
     {
         // Validate references
@@ -67,6 +74,24 @@ public class TaskProgrammer : MonoBehaviour
             {
                 Debug.LogError("Could not find GripperController in the scene!");
             }
+        }
+        
+        if (nativeAvatar == null && useJointDistanceScaling)
+        {
+            Debug.LogWarning("NativeAvatar reference is missing but joint distance scaling is enabled!");
+            nativeAvatar = FindObjectOfType<NuitrackSDK.Tutorials.FirstProject.NativeAvatar>();
+            
+            if (nativeAvatar == null)
+            {
+                Debug.LogWarning("Could not find NativeAvatar in the scene. Joint distance scaling will be disabled.");
+                useJointDistanceScaling = false;
+            }
+        }
+        
+        if (jointDistanceTarget == null && useJointDistanceScaling)
+        {
+            Debug.LogWarning("Joint distance target is missing but joint distance scaling is enabled!");
+            useJointDistanceScaling = false;
         }
         
         // Set up save position button if assigned
@@ -176,11 +201,19 @@ public class TaskProgrammer : MonoBehaviour
         // Move towards target position over time
         while (Vector3.Distance(targetObject.transform.position, targetPosition) > 0.001f)
         {
+            // Calculate dynamic speed based on joint distances if enabled
+            float currentSpeed = baseSpeed;
+            
+            if (useJointDistanceScaling && nativeAvatar != null && jointDistanceTarget != null)
+            {
+                currentSpeed = CalculateSpeedBasedOnJointDistances();
+            }
+            
             // Move towards target position
             targetObject.transform.position = Vector3.MoveTowards(
                 targetObject.transform.position,
                 targetPosition,
-                moveSpeed * Time.deltaTime
+                currentSpeed * Time.deltaTime
             );
             
             yield return null;
@@ -188,6 +221,71 @@ public class TaskProgrammer : MonoBehaviour
         
         // Ensure exact position
         targetObject.transform.position = targetPosition;
+    }
+    
+    /// <summary>
+    /// Calculates movement speed based on the distance of the closest joint to the target object.
+    /// Only adjusts speed if the closest joint is within the distance threshold.
+    /// Uses a non-linear curve for speed adjustment appropriate for collaborative robots.
+    /// </summary>
+    private float CalculateSpeedBasedOnJointDistances()
+    {
+        if (nativeAvatar == null || jointDistanceTarget == null || nativeAvatar.CreatedJoint == null)
+        {
+            return baseSpeed;
+        }
+        
+        float minDistance = float.MaxValue;
+        bool foundActiveJoint = false;
+        
+        // Find the closest active joint to the target object
+        foreach (GameObject joint in nativeAvatar.CreatedJoint)
+        {
+            if (joint != null && joint.activeSelf)
+            {
+                float distance = Vector3.Distance(joint.transform.position, jointDistanceTarget.transform.position);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    foundActiveJoint = true;
+                }
+            }
+        }
+        
+        // If no active joints, return base speed
+        if (!foundActiveJoint)
+        {
+            return baseSpeed;
+        }
+        
+        // If distance is greater than threshold, use base speed
+        if (minDistance >= jointDistanceThreshold)
+        {
+            return baseSpeed;
+        }
+        
+        // Calculate normalized distance (0 to 1) within the threshold
+        float normalizedDistance = minDistance / jointDistanceThreshold;
+        
+        // Apply quadratic curve for more natural deceleration
+        // This creates a curve that:
+        // - Starts at baseSpeed when distance = threshold
+        // - Decreases more rapidly as distance approaches zero
+        // - Reaches minSpeed when distance = 0
+        float speedRange = baseSpeed - minSpeed;
+        float speedFactor = normalizedDistance * normalizedDistance; // Quadratic curve
+        float scaledSpeed = minSpeed + (speedFactor * speedRange);
+        
+        // Apply additional scaling factor if needed
+        if (distanceScalingFactor != 1.0f)
+        {
+            // Apply scaling factor while maintaining the curve shape
+            float adjustedSpeed = baseSpeed - ((baseSpeed - scaledSpeed) * distanceScalingFactor);
+            scaledSpeed = adjustedSpeed;
+        }
+        
+        // Clamp speed between min and max values
+        return Mathf.Clamp(scaledSpeed, minSpeed, maxSpeed);
     }
     
     /// <summary>
