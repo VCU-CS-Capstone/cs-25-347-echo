@@ -12,11 +12,15 @@ using Google.Protobuf;
 using System.ComponentModel;
 using System;
 using TMPro;
+using System.Threading.Tasks;
 
 
 /*
 * THIS SHIT WAS MADE BY ME .... MILES POPIELA
+* Modified to use asynchronous communication to prevent freezing
 */
+
+// TODO: Test if async server implementation works
 
 namespace communication
 {
@@ -62,6 +66,21 @@ namespace communication
         /* Flag to track if we've logged the initial position */
         private bool initialPositionLogged = false;
 
+        /* Flag to track if we're connected and receiving data */
+        private bool isReceivingData = false;
+
+        /* Flag to control coroutines */
+        private bool isRunning = true;
+
+        /* Timeout for receive operations in milliseconds */
+        private const int receiveTimeout = 1000;
+
+        /* Latest received position message */
+        private EgmRobot latestPositionMessage = null;
+
+        /* Latest received joints message */
+        private EgmRobot latestJointsMessage = null;
+
         /* (Unity) Start is called before the first frame update */
         void Start()
         {
@@ -77,60 +96,229 @@ namespace communication
             cy = cube.transform.position.y;
 
             CubeMove(cx, cy, cz, (-cube.transform.eulerAngles.z - 180), cube.transform.eulerAngles.x, (-cube.transform.eulerAngles.y - 180));
+
+            // Process any received position messages
+            if (latestPositionMessage != null)
+            {
+                ParseCurrentPositionFromMessage(latestPositionMessage);
+                latestPositionMessage = null;
+            }
+
+            // Process any received joints messages
+            if (latestJointsMessage != null)
+            {
+                ParseCurrentJointsPositionFromMessage(latestJointsMessage);
+                latestJointsMessage = null;
+            }
         }
 
         public void startcom()
         {
             Debug.Log("Connecting");
 
-            server = new UdpClient(port);
-            Debug.Log("SERVER CREATED");
-            robotAddress = new IPEndPoint(IPAddress.Parse(robotIpAddress), port);
-
-            UpdateValues();
-        }
-
-        private void UpdateValues()
-        {
-            byte[] bytes = null;
-            /* Receives the messages sent by the robot in as a byte array */
             try
             {
-                bytes = server.Receive(ref robotAddress);
+                server = new UdpClient(port);
+                server.Client.ReceiveTimeout = receiveTimeout;
+                Debug.Log("SERVER CREATED");
+                robotAddress = new IPEndPoint(IPAddress.Parse(robotIpAddress), port);
 
+                // Start asynchronous receive operations
+                isRunning = true;
+                StartCoroutine(ReceivePositionDataAsync());
             }
-            catch (SocketException e)
+            catch (Exception e)
             {
-                Debug.Log(e);
+                Debug.LogError("Error starting communication: " + e.Message);
             }
-            if (bytes != null)
-            {
-                /* De-serializes the byte array using the EGM protocol */
-                EgmRobot message = EgmRobot.Parser.ParseFrom(bytes);
+        }
 
-                ParseCurrentPositionFromMessage(message);
+        private IEnumerator ReceivePositionDataAsync()
+        {
+            Debug.Log("Starting position data receiver");
+
+            while (isRunning)
+            {
+                // Use BeginReceive/EndReceive for non-blocking UDP receive
+                IAsyncResult asyncResult = null;
+                bool needDelay = false;
+
+                try
+                {
+                    // Start an asynchronous receive operation
+                    asyncResult = server.BeginReceive(null, null);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("Error starting async receive: " + e.Message);
+                    asyncResult = null;
+                    needDelay = true;
+                }
+
+                // If we had an error, wait a bit before trying again
+                if (needDelay || asyncResult == null)
+                {
+                    yield return new WaitForSeconds(0.1f);
+                    continue;
+                }
+
+                // Wait for data to be available or timeout
+                float timeWaited = 0f;
+                while (!asyncResult.IsCompleted && timeWaited < receiveTimeout / 1000f)
+                {
+                    yield return null; // Return control to Unity
+                    timeWaited += Time.deltaTime;
+                }
+
+                // If we timed out, continue to the next iteration
+                if (!asyncResult.IsCompleted)
+                {
+                    Debug.Log("Position receive timed out");
+                    continue;
+                }
+
+                // Try to get the received data
+                byte[] receivedBytes = null;
+                needDelay = false;
+
+                try
+                {
+                    receivedBytes = server.EndReceive(asyncResult, ref robotAddress);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("Error completing receive: " + e.Message);
+                    receivedBytes = null;
+                    needDelay = true;
+                }
+
+                // If we had an error, wait a bit before trying again
+                if (needDelay || receivedBytes == null)
+                {
+                    yield return new WaitForSeconds(0.1f);
+                    continue;
+                }
+
+                // Process the received data if we got any
+                if (receivedBytes.Length > 0)
+                {
+                    try
+                    {
+                        EgmRobot message = EgmRobot.Parser.ParseFrom(receivedBytes);
+                        latestPositionMessage = message;
+                        isReceivingData = true;
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError("Error parsing message: " + e.Message);
+                    }
+                }
+
+                // Small delay to prevent tight loop
+                yield return new WaitForSeconds(0.01f);
+            }
+        }
+
+        private IEnumerator ReceiveJointsDataAsync()
+        {
+            Debug.Log("Starting joints data receiver");
+
+            while (isRunning)
+            {
+                // Use BeginReceive/EndReceive for non-blocking UDP receive
+                IAsyncResult asyncResult = null;
+                bool needDelay = false;
+
+                try
+                {
+                    // Start an asynchronous receive operation
+                    asyncResult = server.BeginReceive(null, null);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("Error starting async receive: " + e.Message);
+                    asyncResult = null;
+                    needDelay = true;
+                }
+
+                // If we had an error, wait a bit before trying again
+                if (needDelay || asyncResult == null)
+                {
+                    yield return new WaitForSeconds(0.1f);
+                    continue;
+                }
+
+                // Wait for data to be available or timeout
+                float timeWaited = 0f;
+                while (!asyncResult.IsCompleted && timeWaited < receiveTimeout / 1000f)
+                {
+                    yield return null; // Return control to Unity
+                    timeWaited += Time.deltaTime;
+                }
+
+                // If we timed out, continue to the next iteration
+                if (!asyncResult.IsCompleted)
+                {
+                    Debug.Log("Joints receive timed out");
+                    continue;
+                }
+
+                // Try to get the received data
+                byte[] receivedBytes = null;
+                needDelay = false;
+
+                try
+                {
+                    receivedBytes = server.EndReceive(asyncResult, ref robotAddress);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("Error completing receive: " + e.Message);
+                    receivedBytes = null;
+                    needDelay = true;
+                }
+
+                // If we had an error, wait a bit before trying again
+                if (needDelay || receivedBytes == null)
+                {
+                    yield return new WaitForSeconds(0.1f);
+                    continue;
+                }
+
+                // Process the received data if we got any
+                if (receivedBytes.Length > 0)
+                {
+                    try
+                    {
+                        EgmRobot message = EgmRobot.Parser.ParseFrom(receivedBytes);
+                        latestJointsMessage = message;
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError("Error parsing message: " + e.Message);
+                    }
+                }
+
+                // Small delay to prevent tight loop
+                yield return new WaitForSeconds(0.01f);
+            }
+        }
+
+        // Legacy methods kept for compatibility but modified to use the async pattern
+        private void UpdateValues()
+        {
+            if (!isReceivingData)
+            {
+                StartCoroutine(ReceivePositionDataAsync());
             }
         }
 
         private void UpdateJointsValues()
         {
-            byte[] bytes = null;
-            /* Receives the messages sent by the robot in as a byte array */
-            try
+            // Start the joints receiver coroutine if it's not already running
+            if (isRunning && !isReceivingData)
             {
-                bytes = server.Receive(ref robotAddress);
-
-            }
-            catch (SocketException e)
-            {
-                Debug.Log(e);
-            }
-            if (bytes != null)
-            {
-                /* De-serializes the byte array using the EGM protocol */
-                EgmRobot message = EgmRobot.Parser.ParseFrom(bytes);
-
-                ParseCurrentJointsPositionFromMessage(message);
+                StartCoroutine(ReceiveJointsDataAsync());
             }
         }
 
@@ -250,9 +438,9 @@ namespace communication
         /*
 
         Summary: Retrieves x,y, and z data of cube location, and transcribes this information into coordinates to send
-        to robot controller. Once the coordinates are set, SendUDPMessage() is utilized to build and send a UDP packet 
+        to robot controller. Once the coordinates are set, SendUDPMessage() is utilized to build and send a UDP packet
         that contains these coordinates to the robot controller.
-        Inputs: 
+        Inputs:
             - x: X position of cube
             - y: Y position of cube
             - z: Z position of cube
@@ -270,7 +458,27 @@ namespace communication
             rz = rrz;
             //Debug.Log("x: " + x + "\ny: " + y + "\nz: " + z + "\nrx: " + rx + "\nry: " + ry + "\nrz: " + rz);
             SendPoseMessageToRobot(x, y, z, rx, ry, rz);
-            UpdateJointsValues();
+
+            // Start the joints receiver coroutine if it's not already running
+            if (isRunning && !isReceivingData)
+            {
+                StartCoroutine(ReceiveJointsDataAsync());
+            }
+        }
+
+        // Clean up when the object is destroyed
+        private void OnDestroy()
+        {
+            // Stop all coroutines
+            isRunning = false;
+            StopAllCoroutines();
+
+            // Close the UDP client if it exists
+            if (server != null)
+            {
+                server.Close();
+                server = null;
+            }
         }
     }
 }
