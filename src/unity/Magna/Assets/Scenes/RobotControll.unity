@@ -355,7 +355,6 @@ MonoBehaviour:
   targetObject: {fileID: 3797525683882037927}
   gripperController: {fileID: 10410093}
   nativeAvatar: {fileID: 1252017586}
-  jointDistanceTarget: {fileID: 8886566205146240232}
   savePositionButton: {fileID: 1351754141}
   tasks:
   - targetPosition: {x: 0, y: 0, z: 0}
@@ -372,8 +371,14 @@ MonoBehaviour:
   minSpeed: 0
   maxSpeed: 0.25
   distanceScalingFactor: 1
-  useJointDistanceScaling: 1
+  useJointDistanceScaling: 0
   jointDistanceThreshold: 1
+  usePotentialField: 1
+  attractionStrength: 1
+  attractionFalloff: 0.5
+  repulsionStrength: 2
+  repulsionFalloff: 2
+  repulsionRadius: 1
   autoSave: 1
   saveFileName: task_sequence.json
 --- !u!4 &522346867

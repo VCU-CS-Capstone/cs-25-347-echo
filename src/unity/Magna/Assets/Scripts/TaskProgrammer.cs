@@ -31,7 +31,6 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private GameObject targetObject;
     [SerializeField] private GripperController gripperController;
     [SerializeField] private NuitrackSDK.Tutorials.FirstProject.NativeAvatar nativeAvatar;
-    [SerializeField] private GameObject jointDistanceTarget;
     
     [Header("UI References")]
     [SerializeField] private Button savePositionButton;
@@ -49,6 +48,17 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private bool useJointDistanceScaling = true;
     [SerializeField] [Tooltip("Distance threshold in meters. Speed is only adjusted when joints are closer than this")]
     private float jointDistanceThreshold = 1.5f;
+    
+    [Header("Potential Field Settings")]
+    [SerializeField] private bool usePotentialField = true;
+    [SerializeField] private float attractionStrength = 1.0f;
+    [SerializeField] [Tooltip("Higher values create stronger attraction at longer distances")]
+    private float attractionFalloff = 0.5f;
+    [SerializeField] private float repulsionStrength = 2.0f;
+    [SerializeField] [Tooltip("Higher values create stronger repulsion at closer distances")]
+    private float repulsionFalloff = 2.0f;
+    [SerializeField] [Tooltip("Maximum distance at which joints create repulsive forces")]
+    private float repulsionRadius = 1.0f;
     
     [Header("Save Settings")]
     [SerializeField] private bool autoSave = true;
@@ -88,9 +98,10 @@ public class TaskProgrammer : MonoBehaviour
             }
         }
         
-        if (jointDistanceTarget == null && useJointDistanceScaling)
+        // No need to check for a separate joint distance target since we're using targetObject for that purpose
+        if (targetObject == null && useJointDistanceScaling)
         {
-            Debug.LogWarning("Joint distance target is missing but joint distance scaling is enabled!");
+            Debug.LogWarning("Target object is missing but joint distance scaling is enabled!");
             useJointDistanceScaling = false;
         }
         
@@ -204,17 +215,32 @@ public class TaskProgrammer : MonoBehaviour
             // Calculate dynamic speed based on joint distances if enabled
             float currentSpeed = baseSpeed;
             
-            if (useJointDistanceScaling && nativeAvatar != null && jointDistanceTarget != null)
+            if (useJointDistanceScaling && nativeAvatar != null)
             {
                 currentSpeed = CalculateSpeedBasedOnJointDistances();
             }
             
-            // Move towards target position
-            targetObject.transform.position = Vector3.MoveTowards(
-                targetObject.transform.position,
-                targetPosition,
-                currentSpeed * Time.deltaTime
-            );
+            if (usePotentialField && nativeAvatar != null)
+            {
+                // Calculate movement direction using potential field
+                Vector3 moveDirection = CalculatePotentialFieldForce(targetPosition);
+                
+                // Normalize and apply speed
+                if (moveDirection.magnitude > 0.001f)
+                {
+                    moveDirection.Normalize();
+                    targetObject.transform.position += moveDirection * currentSpeed * Time.deltaTime;
+                }
+            }
+            else
+            {
+                // Traditional direct movement if potential field is disabled
+                targetObject.transform.position = Vector3.MoveTowards(
+                    targetObject.transform.position,
+                    targetPosition,
+                    currentSpeed * Time.deltaTime
+                );
+            }
             
             yield return null;
         }
@@ -224,13 +250,74 @@ public class TaskProgrammer : MonoBehaviour
     }
     
     /// <summary>
+    /// Calculates the combined force vector using the potential field method.
+    /// Combines attractive force to target with repulsive forces from all joints.
+    /// </summary>
+    private Vector3 CalculatePotentialFieldForce(Vector3 targetPosition)
+    {
+        if (nativeAvatar == null || nativeAvatar.CreatedJoint == null)
+        {
+            // If no joints to avoid, just move directly to target
+            return targetPosition - targetObject.transform.position;
+        }
+        
+        // Calculate attractive force towards target
+        Vector3 toTarget = targetPosition - targetObject.transform.position;
+        float distanceToTarget = toTarget.magnitude;
+        
+        // Attractive force decreases with distance based on falloff parameter
+        // Higher attractionFalloff means stronger attraction at longer distances
+        float attractionMagnitude = attractionStrength;
+        if (distanceToTarget > 0.001f)
+        {
+            attractionMagnitude = attractionStrength / Mathf.Pow(distanceToTarget, attractionFalloff);
+        }
+        
+        Vector3 attractiveForce = toTarget.normalized * attractionMagnitude;
+        
+        // Calculate repulsive forces from all joints
+        Vector3 repulsiveForce = Vector3.zero;
+        
+        foreach (GameObject joint in nativeAvatar.CreatedJoint)
+        {
+            if (joint != null && joint.activeSelf)
+            {
+                Vector3 toJoint = targetObject.transform.position - joint.transform.position;
+                float distanceToJoint = toJoint.magnitude;
+                
+                // Only apply repulsion within the specified radius
+                if (distanceToJoint < repulsionRadius)
+                {
+                    // Repulsive force increases as distance decreases
+                    // Higher repulsionFalloff means stronger repulsion at closer distances
+                    float repulsionMagnitude = repulsionStrength *
+                        Mathf.Pow((repulsionRadius - distanceToJoint) / repulsionRadius, repulsionFalloff);
+                    
+                    // Add repulsive force from this joint
+                    repulsiveForce += toJoint.normalized * repulsionMagnitude;
+                }
+            }
+        }
+        
+        // Combine forces
+        Vector3 totalForce = attractiveForce + repulsiveForce;
+        
+        // Debug visualization
+        Debug.DrawRay(targetObject.transform.position, attractiveForce, Color.green);
+        Debug.DrawRay(targetObject.transform.position, repulsiveForce, Color.red);
+        Debug.DrawRay(targetObject.transform.position, totalForce, Color.blue);
+        
+        return totalForce;
+    }
+    
+    /// <summary>
     /// Calculates movement speed based on the distance of the closest joint to the target object.
     /// Only adjusts speed if the closest joint is within the distance threshold.
     /// Uses a non-linear curve for speed adjustment appropriate for collaborative robots.
     /// </summary>
     private float CalculateSpeedBasedOnJointDistances()
     {
-        if (nativeAvatar == null || jointDistanceTarget == null || nativeAvatar.CreatedJoint == null)
+        if (nativeAvatar == null || nativeAvatar.CreatedJoint == null)
         {
             return baseSpeed;
         }
@@ -243,7 +330,7 @@ public class TaskProgrammer : MonoBehaviour
         {
             if (joint != null && joint.activeSelf)
             {
-                float distance = Vector3.Distance(joint.transform.position, jointDistanceTarget.transform.position);
+                float distance = Vector3.Distance(joint.transform.position, targetObject.transform.position);
                 if (distance < minDistance)
                 {
                     minDistance = distance;
