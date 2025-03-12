@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
+using communication; // Add namespace for UDPCOMM
 
 public class TaskProgrammer : MonoBehaviour
 {
@@ -31,6 +32,7 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private GameObject targetObject;
     [SerializeField] private GripperController gripperController;
     [SerializeField] private NuitrackSDK.Tutorials.FirstProject.NativeAvatar nativeAvatar;
+    [SerializeField] private UDPCOMM udpCommComponent; // Reference to the UDPCOMM component
     
     [Header("Task Sequence")]
     [SerializeField] private List<ProgrammedTask> tasks = new List<ProgrammedTask>();
@@ -62,6 +64,7 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private string saveFileName = "task_sequence.json";
     
     private bool isExecuting = false;
+    private bool isUdpConnected = false; // Flag to track if UDP connection is established
     private string SaveFilePath => Path.Combine(Application.persistentDataPath, saveFileName);
     private int previousTaskCount = 0; // Used to track when new tasks are added in the inspector
     
@@ -131,10 +134,70 @@ public class TaskProgrammer : MonoBehaviour
             useJointDistanceScaling = false;
         }
         
+        // Find UDPCOMM component if not assigned
+        if (udpCommComponent == null)
+        {
+            Debug.Log("UDPCOMM reference is missing. Attempting to find it in the scene.");
+            udpCommComponent = FindObjectOfType<UDPCOMM>();
+            
+            if (udpCommComponent == null)
+            {
+                Debug.LogError("Could not find UDPCOMM in the scene! Tasks will not execute until UDPCOMM is available.");
+            }
+        }
+        
         // Load saved tasks
         LoadTasks();
         
-        // Execute on start if configured
+        // Start a coroutine to wait for UDPCOMM connection before executing tasks
+        StartCoroutine(WaitForUdpConnection());
+    }
+    
+    /// <summary>
+    /// Coroutine that waits for the UDPCOMM connection to be established before executing tasks
+    /// </summary>
+    private IEnumerator WaitForUdpConnection()
+    {
+        Debug.Log("Waiting for UDPCOMM to establish connection...");
+        
+        // Initial delay to give UDPCOMM time to start
+        yield return new WaitForSeconds(1.0f);
+        
+        // Wait until UDPCOMM component is available
+        while (udpCommComponent == null)
+        {
+            udpCommComponent = FindObjectOfType<UDPCOMM>();
+            yield return new WaitForSeconds(0.5f);
+        }
+        
+        // Wait for a reasonable amount of time to ensure connection is established
+        // UDPCOMM typically needs a few seconds to establish connection
+        float waitTime = 0f;
+        float maxWaitTime = 30f; // Maximum time to wait in seconds
+        
+        while (waitTime < maxWaitTime)
+        {
+            // Check if cube position has been updated, which indicates communication is happening
+            if (udpCommComponent.cube != null && udpCommComponent.cube.transform.position != Vector3.zero)
+            {
+                Debug.Log("UDPCOMM connection detected. Robot position has been updated.");
+                isUdpConnected = true;
+                break;
+            }
+            
+            waitTime += 0.5f;
+            yield return new WaitForSeconds(0.5f);
+        }
+        
+        if (!isUdpConnected)
+        {
+            Debug.LogWarning("Timed out waiting for UDPCOMM connection. Proceeding anyway.");
+            isUdpConnected = true; // Assume connection to avoid blocking indefinitely
+        }
+        
+        Debug.Log("Ready to execute tasks.");
+        
+        // Execute tasks if configured to do so on start
         if (executeOnStart && tasks.Count > 0)
         {
             ExecuteTasks();
@@ -149,6 +212,24 @@ public class TaskProgrammer : MonoBehaviour
         if (tasks.Count == 0)
         {
             Debug.LogWarning("No tasks to execute!");
+            return;
+        }
+        
+        if (!isUdpConnected)
+        {
+            Debug.LogWarning("Cannot execute tasks: UDPCOMM connection not established yet. Tasks will execute once connection is established.");
+            
+            // Set executeOnStart to true so that tasks will execute once the connection is established
+            executeOnStart = true;
+            
+            // Start the WaitForUdpConnection coroutine if it's not already running
+            if (udpCommComponent == null)
+            {
+                udpCommComponent = FindObjectOfType<UDPCOMM>();
+            }
+            
+            // Start the coroutine to wait for the connection
+            StartCoroutine(WaitForUdpConnection());
             return;
         }
         
@@ -454,6 +535,14 @@ public class TaskProgrammer : MonoBehaviour
     public bool IsExecuting()
     {
         return isExecuting;
+    }
+    
+    /// <summary>
+    /// Checks if the UDPCOMM connection is established
+    /// </summary>
+    public bool IsUdpConnected()
+    {
+        return isUdpConnected;
     }
     
     /// <summary>
