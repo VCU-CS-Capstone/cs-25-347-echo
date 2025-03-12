@@ -108,6 +108,18 @@ public class TaskProgrammer : MonoBehaviour
             useJointDistanceScaling = false;
         }
         
+        // Find UDPCOMM component if not assigned
+        if (udpCommComponent == null)
+        {
+            Debug.Log("UDPCOMM reference is missing. Attempting to find it in the scene.");
+            udpCommComponent = FindObjectOfType<UDPCOMM>();
+            
+            if (udpCommComponent == null)
+            {
+                Debug.LogError("Could not find UDPCOMM in the scene! Tasks will not execute until UDPCOMM is available.");
+            }
+        }
+        
         // Load saved tasks
         LoadTasks();
         
