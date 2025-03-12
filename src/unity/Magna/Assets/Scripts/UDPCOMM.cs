@@ -13,6 +13,7 @@ using System.ComponentModel;
 using System;
 using TMPro;
 
+// TODO: Fix jolting
 
 /*
 * THIS SHIT WAS MADE BY ME .... MILES POPIELA

@@ -5,6 +5,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using communication; // Add namespace for UDPCOMM
 
+// TODO: Fix TaskProgrammer starting too soon
+// TODO: Set boundary restrictions
+// TODO: Redo task order implementation (gripper actions in relation to arm movement)
+
 public class TaskProgrammer : MonoBehaviour
 {
     [System.Serializable]
