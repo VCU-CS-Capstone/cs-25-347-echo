@@ -32,9 +32,6 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private GripperController gripperController;
     [SerializeField] private NuitrackSDK.Tutorials.FirstProject.NativeAvatar nativeAvatar;
     
-    [Header("UI References")]
-    [SerializeField] private Button savePositionButton;
-    
     [Header("Task Sequence")]
     [SerializeField] private List<ProgrammedTask> tasks = new List<ProgrammedTask>();
     
@@ -66,6 +63,35 @@ public class TaskProgrammer : MonoBehaviour
     
     private bool isExecuting = false;
     private string SaveFilePath => Path.Combine(Application.persistentDataPath, saveFileName);
+    private int previousTaskCount = 0; // Used to track when new tasks are added in the inspector
+    
+    /// <summary>
+    /// Called in the editor when values are changed in the inspector
+    /// Used to automatically set the position of newly added tasks
+    /// </summary>
+    private void OnValidate()
+    {
+        // Check if we're in the editor and not playing
+        if (!Application.isPlaying)
+        {
+            // Check if tasks were added
+            if (tasks.Count > previousTaskCount)
+            {
+                // If targetObject is null, use this GameObject
+                GameObject positionSource = targetObject != null ? targetObject : gameObject;
+                
+                // Update all newly added tasks with the current position
+                for (int i = previousTaskCount; i < tasks.Count; i++)
+                {
+                    tasks[i].targetPosition = positionSource.transform.position;
+                    Debug.Log($"Auto-set position for task {i} to {positionSource.transform.position}");
+                }
+            }
+            
+            // Update the previous count
+            previousTaskCount = tasks.Count;
+        }
+    }
     private void Start()
     {
         // Validate references
@@ -103,12 +129,6 @@ public class TaskProgrammer : MonoBehaviour
         {
             Debug.LogWarning("Target object is missing but joint distance scaling is enabled!");
             useJointDistanceScaling = false;
-        }
-        
-        // Set up save position button if assigned
-        if (savePositionButton != null)
-        {
-            savePositionButton.onClick.AddListener(SaveCurrentPositionAsTask);
         }
         
         // Load saved tasks
@@ -438,7 +458,7 @@ public class TaskProgrammer : MonoBehaviour
     
     /// <summary>
     /// Saves the current position of the target object as a new task
-    /// This method is intended to be called by a UI button
+    /// Can be called programmatically to add a task with the current position
     /// </summary>
     public void SaveCurrentPositionAsTask()
     {
