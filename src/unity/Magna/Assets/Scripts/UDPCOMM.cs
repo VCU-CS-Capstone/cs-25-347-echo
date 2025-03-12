@@ -13,6 +13,11 @@ using System.ComponentModel;
 using System;
 using TMPro;
 
+
+/*
+* THIS SHIT WAS MADE BY ME .... MILES POPIELA
+*/
+
 namespace communication
 {
     public class UDPCOMM : MonoBehaviour
@@ -33,7 +38,6 @@ namespace communication
         /* Variable used to count the number of messages sent */
         private uint sequenceNumber = 0;
         public GameObject cube;
-        public GameObject Text;
         /* Robot cartesian position and rotation values */
         double x, y, z, rx, ry, rz;
         double xc, yc, zc;
@@ -45,29 +49,22 @@ namespace communication
         double crz;
         Vector3 angles;
 
+        public GameObject joint1;
+        public GameObject joint2;
+        public GameObject joint3;
+        public GameObject joint4;
+        public GameObject joint5;
+        public GameObject joint6;
+
         /* Current state of EGM communication (disconnected, connected or running) */
         string egmState = "Undefined";
 
-        /* UI elements for displaying initial position and rotation */
-        public TextMeshPro egmStateText;
-        public TextMeshPro initialXText;
-        public TextMeshPro initialYText;
-        public TextMeshPro initialZText;
-        public TextMeshPro initialRXText;
-        public TextMeshPro initialRYText;
-        public TextMeshPro initialRZText;
-        public GameObject initialPositionPanel; // Canvas panel to show initial position
-
-        /* Flag to track if we've displayed the initial position */
-        private bool initialPositionDisplayed = false;
+        /* Flag to track if we've logged the initial position */
+        private bool initialPositionLogged = false;
 
         /* (Unity) Start is called before the first frame update */
         void Start()
         {
-            /* Hide initial position panel until we receive data */
-            if (initialPositionPanel != null)
-                initialPositionPanel.SetActive(false);
-
             /* Initializes EGM connection with robot */
             startcom();
         }
@@ -79,11 +76,7 @@ namespace communication
             cx = cube.transform.position.x;
             cy = cube.transform.position.y;
 
-            cubeMove(cx, cy, cz, (-cube.transform.eulerAngles.z - 180), cube.transform.eulerAngles.x, (-cube.transform.eulerAngles.y - 180));
-
-            //Updates EGMState
-            if (egmStateText != null)
-                egmStateText.text = "EGM State: " + egmState;
+            CubeMove(cx, cy, cz, (-cube.transform.eulerAngles.z - 180), cube.transform.eulerAngles.x, (-cube.transform.eulerAngles.y - 180));
         }
 
         public void startcom()
@@ -104,8 +97,7 @@ namespace communication
             try
             {
                 bytes = server.Receive(ref robotAddress);
-                Text.SetActive(false);
-                Debug.Log("Connected");
+
             }
             catch (SocketException e)
             {
@@ -120,6 +112,38 @@ namespace communication
             }
         }
 
+        private void UpdateJointsValues()
+        {
+            byte[] bytes = null;
+            /* Receives the messages sent by the robot in as a byte array */
+            try
+            {
+                bytes = server.Receive(ref robotAddress);
+
+            }
+            catch (SocketException e)
+            {
+                Debug.Log(e);
+            }
+            if (bytes != null)
+            {
+                /* De-serializes the byte array using the EGM protocol */
+                EgmRobot message = EgmRobot.Parser.ParseFrom(bytes);
+
+                ParseCurrentJointsPositionFromMessage(message);
+            }
+        }
+
+        private void ParseCurrentJointsPositionFromMessage(EgmRobot message)
+        {
+            joint1.transform.localEulerAngles = new Vector3(0, 0, -(float)message.FeedBack.Joints.Joints[0]);
+            joint2.transform.localEulerAngles = new Vector3(0, -(float)message.FeedBack.Joints.Joints[1], 0);
+            joint3.transform.localEulerAngles = new Vector3(0, -(float)message.FeedBack.Joints.Joints[2], 0);
+            joint4.transform.localEulerAngles = new Vector3(-(float)message.FeedBack.Joints.Joints[3], 0, 0);
+            joint5.transform.localEulerAngles = new Vector3(0, -(float)message.FeedBack.Joints.Joints[4], 0);
+            joint6.transform.localEulerAngles = new Vector3(-(float)message.FeedBack.Joints.Joints[5], 0, 0);
+        }
+
         private void ParseCurrentPositionFromMessage(EgmRobot message)
         {
             /* Parse the current robot position and EGM state from message
@@ -127,6 +151,7 @@ namespace communication
             /* Checks if header is valid */
             if (message.Header.HasSeqno && message.Header.HasTm)
             {
+
                 x = message.FeedBack.Cartesian.Pos.X;
                 y = message.FeedBack.Cartesian.Pos.Y;
                 z = message.FeedBack.Cartesian.Pos.Z;
@@ -137,12 +162,13 @@ namespace communication
                 ry = message.FeedBack.Cartesian.Euler.Y;
                 rz = message.FeedBack.Cartesian.Euler.Z;
                 egmState = message.MciState.State.ToString();
-
-                // Display the initial position on the UI if not already displayed
-                if (!initialPositionDisplayed)
+                cube.transform.position = new Vector3((float)y / 1000, (float)z / 1000, (float)-x / 1000);
+                // Log the initial position if not already logged
+                if (!initialPositionLogged)
                 {
-                    initialPositionDisplayed = true;
-                    DisplayInitialPosition();
+                    initialPositionLogged = true;
+                    Debug.Log("Initial robot position - X:" + x + ", Y:" + y + ", Z:" + z +
+                              ", RX:" + rx + ", RY:" + ry + ", RZ:" + rz);
                 }
 
                 Debug.Log(egmState);
@@ -150,27 +176,6 @@ namespace communication
             else
             {
                 Console.WriteLine("The message received from robot is invalid.");
-            }
-        }
-
-        /* New method to display the initial position on the UI */
-        private void DisplayInitialPosition()
-        {
-            if (initialPositionPanel != null)
-            {
-                // Update UI elements with initial position and rotation
-                if (initialXText != null) initialXText.text = "X: " + x.ToString("F2") + " mm";
-                if (initialYText != null) initialYText.text = "Y: " + y.ToString("F2") + " mm";
-                if (initialZText != null) initialZText.text = "Z: " + z.ToString("F2") + " mm";
-                if (initialRXText != null) initialRXText.text = "RX: " + rx.ToString("F2") + "�";
-                if (initialRYText != null) initialRYText.text = "RY: " + ry.ToString("F2") + "�";
-                if (initialRZText != null) initialRZText.text = "RZ: " + rz.ToString("F2") + "�";
-
-                // Show the panel with initial position
-                initialPositionPanel.SetActive(true);
-
-                Debug.Log("Initial robot position displayed - X:" + x + ", Y:" + y + ", Z:" + z +
-                          ", RX:" + rx + ", RY:" + ry + ", RZ:" + rz);
             }
         }
 
@@ -241,7 +246,7 @@ namespace communication
             //Debug.Log("MSG MADE");
 
         }
-        public void cubeMove(double xx, double yy, double zz, double rrx, double rry, double rrz)
+        public void CubeMove(double xx, double yy, double zz, double rrx, double rry, double rrz)
         /*
 
         Summary: Retrieves x,y, and z data of cube location, and transcribes this information into coordinates to send
@@ -257,14 +262,15 @@ namespace communication
 
         */
         {
-            y = (xx * 1000) + yc;//yC + deviation;
-            x = (zz * 1000) + xc;//xC;
-            z = (yy * 1000) + zc;//zC;
+            y = (xx * 1000);//yC + deviation;
+            x = (zz * 1000);//xC;
+            z = (yy * 1000);//zC;
             rx = rrx;
             ry = rry;
             rz = rrz;
             //Debug.Log("x: " + x + "\ny: " + y + "\nz: " + z + "\nrx: " + rx + "\nry: " + ry + "\nrz: " + rz);
             SendPoseMessageToRobot(x, y, z, rx, ry, rz);
+            UpdateJointsValues();
         }
     }
 }
