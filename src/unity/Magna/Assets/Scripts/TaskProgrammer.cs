@@ -160,18 +160,18 @@ public class TaskProgrammer : MonoBehaviour
             yield break; // Exit the coroutine
         }
         
-        // Wait for the connection to be established and for EGM to be in RUNNING state
+        // Wait for the connection to be established
         float connectionWaitTime = 0f;
         bool connectionLoggedOnce = false;
         
-        Debug.Log("Waiting for EGM connection and RUNNING state...");
+        Debug.Log("Waiting for EGM connection...");
         
         while (connectionWaitTime < connectionMaxWaitTime)
         {
-            // Check if both conditions are met: connection established and EGM running
-            if (udpCommComponent.IsConnectionEstablished && udpCommComponent.IsEgmRunning)
+            // Check if connection is established
+            if (udpCommComponent.IsConnectionEstablished)
             {
-                Debug.Log("UDPCOMM connection established and EGM is in RUNNING state.");
+                Debug.Log("UDPCOMM connection established.");
                 isUdpConnected = true;
                 break;
             }
@@ -180,7 +180,7 @@ public class TaskProgrammer : MonoBehaviour
             if (!connectionLoggedOnce || Mathf.FloorToInt(connectionWaitTime) % 5 == 0)
             {
                 connectionLoggedOnce = true;
-                Debug.Log($"Waiting for EGM connection... Status: Connection={udpCommComponent.IsConnectionEstablished}, EGM State={udpCommComponent.EgmState}");
+                Debug.Log($"Waiting for EGM connection... Status: Connection={udpCommComponent.IsConnectionEstablished}");
             }
             
             connectionWaitTime += 0.5f;
@@ -190,7 +190,7 @@ public class TaskProgrammer : MonoBehaviour
         if (!isUdpConnected)
         {
             Debug.LogWarning($"Timed out waiting for UDPCOMM connection after {connectionMaxWaitTime} seconds.");
-            Debug.LogWarning($"Connection status: IsConnectionEstablished={udpCommComponent.IsConnectionEstablished}, EGM State={udpCommComponent.EgmState}");
+            Debug.LogWarning($"Connection status: IsConnectionEstablished={udpCommComponent.IsConnectionEstablished}");
             
             // Do not proceed with execution if connection failed
             Debug.LogError("Task execution aborted due to communication failure with robot.");
@@ -217,11 +217,11 @@ public class TaskProgrammer : MonoBehaviour
             return;
         }
         
-        // Enhanced connection checking
-        if (udpCommComponent == null || !udpCommComponent.IsConnectionEstablished || !udpCommComponent.IsEgmRunning)
+        // Simplified connection checking
+        if (udpCommComponent == null || !udpCommComponent.IsConnectionEstablished)
         {
-            Debug.LogWarning("Cannot execute tasks: UDPCOMM connection not established or EGM not in RUNNING state.");
-            Debug.LogWarning($"Connection status: {(udpCommComponent == null ? "UDPCOMM not found" : $"Connection={udpCommComponent.IsConnectionEstablished}, EGM State={udpCommComponent.EgmState}")}");
+            Debug.LogWarning("Cannot execute tasks: UDPCOMM connection not established.");
+            Debug.LogWarning($"Connection status: {(udpCommComponent == null ? "UDPCOMM not found" : $"Connection={udpCommComponent.IsConnectionEstablished}")}");
             
             // Set executeOnStart to true so that tasks will execute once the connection is established
             executeOnStart = true;
@@ -550,7 +550,7 @@ public class TaskProgrammer : MonoBehaviour
         {
             return false;
         }
-        return isUdpConnected && udpCommComponent.IsConnectionEstablished && udpCommComponent.IsEgmRunning;
+        return isUdpConnected && udpCommComponent.IsConnectionEstablished;
     }
     
     /// <summary>

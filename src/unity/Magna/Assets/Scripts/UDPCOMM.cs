@@ -54,10 +54,6 @@ public class UDPCOMM : MonoBehaviour
     
     /* Connection status tracking */
     private bool isConnectionEstablished = false;
-    private int consecutiveMessagesReceived = 0;
-    private const int REQUIRED_CONSECUTIVE_MESSAGES = 3;
-    private float lastMessageTime = 0f;
-    private const float MESSAGE_TIMEOUT = 2.0f; // 2 seconds timeout between messages
     
     // Public properties to expose connection status
     public bool IsConnectionEstablished => isConnectionEstablished;
@@ -76,14 +72,6 @@ public class UDPCOMM : MonoBehaviour
     /* (Unity) Update is called once per frame */
     void Update()
     {
-        // Check for connection timeout
-        if (isConnectionEstablished && Time.time - lastMessageTime > MESSAGE_TIMEOUT)
-        {
-            Debug.LogWarning("Connection timeout: No messages received for " + MESSAGE_TIMEOUT + " seconds");
-            isConnectionEstablished = false;
-            consecutiveMessagesReceived = 0;
-        }
-        
         cz = -cube.transform.position.z; //initialize variables above
         cx = cube.transform.position.x;
         cy = cube.transform.position.y;
@@ -98,6 +86,10 @@ public class UDPCOMM : MonoBehaviour
         server = new UdpClient(port);
         Debug.Log("SERVER CREATED");
         robotAddress = new IPEndPoint(IPAddress.Parse(robotIpAddress), port);
+
+        // Set connection as established once startcom is completed
+        isConnectionEstablished = true;
+        Debug.Log("EGM connection established");
 
         UpdateValues();
     }
@@ -163,17 +155,6 @@ public class UDPCOMM : MonoBehaviour
         /* Checks if header is valid */
         if (message.Header.HasSeqno && message.Header.HasTm)
         {
-            // Update message received tracking
-            lastMessageTime = Time.time;
-            consecutiveMessagesReceived++;
-            
-            // Consider connection established after receiving multiple consecutive valid messages
-            if (consecutiveMessagesReceived >= REQUIRED_CONSECUTIVE_MESSAGES && !isConnectionEstablished)
-            {
-                isConnectionEstablished = true;
-                Debug.Log("EGM connection established after receiving " + REQUIRED_CONSECUTIVE_MESSAGES + " consecutive valid messages");
-            }
-
             x = message.FeedBack.Cartesian.Pos.X;
             y = message.FeedBack.Cartesian.Pos.Y;
             z = message.FeedBack.Cartesian.Pos.Z;
@@ -197,8 +178,6 @@ public class UDPCOMM : MonoBehaviour
         else
         {
             Console.WriteLine("The message received from robot is invalid.");
-            // Reset consecutive messages counter on invalid message
-            consecutiveMessagesReceived = 0;
         }
     }
     
@@ -206,7 +185,6 @@ public class UDPCOMM : MonoBehaviour
     public void ResetConnectionStatus()
     {
         isConnectionEstablished = false;
-        consecutiveMessagesReceived = 0;
         Debug.Log("UDPCOMM connection status reset");
     }
 

@@ -361,13 +361,16 @@ MonoBehaviour:
   - targetPosition: {x: 0, y: 0, z: 0}
     openGripper: 0
     closeGripper: 0
+    delayBeforeAction: 0
     delayAfterAction: 0
   - targetPosition: {x: 0, y: 0, z: 0}
     openGripper: 0
     closeGripper: 0
+    delayBeforeAction: 0
     delayAfterAction: 0
   executeOnStart: 1
   repeatSequence: 1
+  initialExecutionDelay: 0
   baseSpeed: 0.2
   minSpeed: 0
   maxSpeed: 0.25
