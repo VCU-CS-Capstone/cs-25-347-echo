@@ -10,10 +10,6 @@ using System;
 
 // TODO: Fix jolting
 
-/*
-* THIS SHIT WAS MADE BY ME .... MILES POPIELA
-*/
-
 public class UDPCOMM : MonoBehaviour
 {
 
@@ -55,6 +51,20 @@ public class UDPCOMM : MonoBehaviour
 
     /* Flag to track if we've logged the initial position */
     private bool initialPositionLogged = false;
+    
+    /* Connection status tracking */
+    private bool isConnectionEstablished = false;
+    private int consecutiveMessagesReceived = 0;
+    private const int REQUIRED_CONSECUTIVE_MESSAGES = 3;
+    private float lastMessageTime = 0f;
+    private const float MESSAGE_TIMEOUT = 2.0f; // 2 seconds timeout between messages
+    
+    // Public properties to expose connection status
+    public bool IsConnectionEstablished => isConnectionEstablished;
+    public string EgmState => egmState;
+    
+    // Property to check if EGM is in RUNNING state
+    public bool IsEgmRunning => egmState == "RUNNING";
 
     /* (Unity) Start is called before the first frame update */
     void Start()
@@ -66,11 +76,19 @@ public class UDPCOMM : MonoBehaviour
     /* (Unity) Update is called once per frame */
     void Update()
     {
+        // Check for connection timeout
+        if (isConnectionEstablished && Time.time - lastMessageTime > MESSAGE_TIMEOUT)
+        {
+            Debug.LogWarning("Connection timeout: No messages received for " + MESSAGE_TIMEOUT + " seconds");
+            isConnectionEstablished = false;
+            consecutiveMessagesReceived = 0;
+        }
+        
         cz = -cube.transform.position.z; //initialize variables above
         cx = cube.transform.position.x;
         cy = cube.transform.position.y;
 
-        CubeMove(cx, cy, cz, (-cube.transform.eulerAngles.z - 180), cube.transform.eulerAngles.x, (-cube.transform.eulerAngles.y - 180));
+        CubeMove(cx, cy, cz, -cube.transform.eulerAngles.z - 180, cube.transform.eulerAngles.x, -cube.transform.eulerAngles.y - 180);
     }
 
     public void startcom()
@@ -145,6 +163,16 @@ public class UDPCOMM : MonoBehaviour
         /* Checks if header is valid */
         if (message.Header.HasSeqno && message.Header.HasTm)
         {
+            // Update message received tracking
+            lastMessageTime = Time.time;
+            consecutiveMessagesReceived++;
+            
+            // Consider connection established after receiving multiple consecutive valid messages
+            if (consecutiveMessagesReceived >= REQUIRED_CONSECUTIVE_MESSAGES && !isConnectionEstablished)
+            {
+                isConnectionEstablished = true;
+                Debug.Log("EGM connection established after receiving " + REQUIRED_CONSECUTIVE_MESSAGES + " consecutive valid messages");
+            }
 
             x = message.FeedBack.Cartesian.Pos.X;
             y = message.FeedBack.Cartesian.Pos.Y;
@@ -163,14 +191,23 @@ public class UDPCOMM : MonoBehaviour
                 initialPositionLogged = true;
                 Debug.Log("Initial robot position - X:" + x + ", Y:" + y + ", Z:" + z +
                           ", RX:" + rx + ", RY:" + ry + ", RZ:" + rz);
+                Debug.Log("Initial EGM state: " + egmState);
             }
-
-            Debug.Log(egmState);
         }
         else
         {
             Console.WriteLine("The message received from robot is invalid.");
+            // Reset consecutive messages counter on invalid message
+            consecutiveMessagesReceived = 0;
         }
+    }
+    
+    // Add method to reset connection status (useful for error handling)
+    public void ResetConnectionStatus()
+    {
+        isConnectionEstablished = false;
+        consecutiveMessagesReceived = 0;
+        Debug.Log("UDPCOMM connection status reset");
     }
 
     private void SendPoseMessageToRobot(double zx, double zy, double zz, double zrx, double zry, double zrz)
@@ -182,9 +219,9 @@ public class UDPCOMM : MonoBehaviour
          * will not work. Hololens runs under Universal Windows Platform (UWP), which at the present
          * moment does not work with UdpClient class. DatagramSocket should be used instead. */
 
-        using (MemoryStream memoryStream = new MemoryStream())
+        using (MemoryStream memoryStream = new())
         {
-            EgmSensor message = new EgmSensor();
+            EgmSensor message = new();
             /* Prepare a new message in EGM format */
             CreatePoseMessage(message, zx, zy, zz, zrx, zry, zrz);
 
@@ -211,16 +248,18 @@ public class UDPCOMM : MonoBehaviour
 
            See one example here: https://github.com/vcuse/egm-for-abb-robots/blob/main/EGMPoseCommunication.modx */
 
-        EgmHeader hdr = new EgmHeader();
-        hdr.Seqno = sequenceNumber++;
-        hdr.Tm = (uint)DateTime.Now.Ticks;
-        hdr.Mtype = EgmHeader.Types.MessageType.MsgtypeCorrection;
+        EgmHeader hdr = new()
+        {
+            Seqno = sequenceNumber++,
+            Tm = (uint)DateTime.Now.Ticks,
+            Mtype = EgmHeader.Types.MessageType.MsgtypeCorrection
+        };
 
         message.Header = hdr;
-        EgmPlanned planned_trajectory = new EgmPlanned();
-        EgmPose cartesian_pos = new EgmPose();
-        EgmCartesian tcp_p = new EgmCartesian();
-        EgmEuler ea_p = new EgmEuler();
+        EgmPlanned planned_trajectory = new();
+        EgmPose cartesian_pos = new();
+        EgmCartesian tcp_p = new();
+        EgmEuler ea_p = new();
 
         /* Translation values */
         tcp_p.X = zx;
