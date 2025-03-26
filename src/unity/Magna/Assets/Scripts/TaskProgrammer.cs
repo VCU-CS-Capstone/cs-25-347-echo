@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
-using communication; // Add namespace for UDPCOMM
 
 // TODO: Fix TaskProgrammer starting too soon
 // TODO: Set boundary restrictions
