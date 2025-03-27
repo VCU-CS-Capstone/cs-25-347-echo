@@ -71,12 +71,27 @@ public class TaskProgrammer : MonoBehaviour
     
     [Header("Connection Settings")]
     [SerializeField] private float connectionMaxWaitTime = 60f; // Maximum time to wait for connection in seconds
+    [SerializeField] [Tooltip("Delay in seconds after connection is established before starting task execution")]
+    private float startDelayAfterConnection = 2.0f; // Default 2-second delay after connection
     
     private bool isExecuting = false;
     private bool isUdpConnected = false; // Flag to track if UDP connection is established
     private string SaveFilePath => Path.Combine(Application.persistentDataPath, saveFileName);
     private void Start()
     {
+        Debug.Log("TaskProgrammer Start method called");
+        
+        // Set up the save position button click event
+        if (savePositionButton != null)
+        {
+            Debug.Log("Setting up savePositionButton click event");
+            savePositionButton.onClick.AddListener(SaveCurrentPositionAsTask);
+        }
+        else
+        {
+            Debug.LogError("Save position button reference is missing! Button will not function.");
+        }
+        
         // Validate references
         if (targetObject == null)
         {
@@ -197,11 +212,22 @@ public class TaskProgrammer : MonoBehaviour
             yield break; // Exit without executing tasks
         }
         
-        Debug.Log("Ready to execute tasks.");
+        // Add delay after connection is established before starting task execution
+        if (startDelayAfterConnection > 0)
+        {
+            Debug.Log($"Connection established. Waiting for {startDelayAfterConnection} seconds before starting task execution...");
+            yield return new WaitForSeconds(startDelayAfterConnection);
+            Debug.Log("Delay completed. Ready to execute tasks.");
+        }
+        else
+        {
+            Debug.Log("Connection established. Ready to execute tasks immediately (no delay configured).");
+        }
         
         // Execute tasks if configured to do so on start
         if (executeOnStart && tasks.Count > 0)
         {
+            Debug.Log("Auto-executing tasks as configured...");
             ExecuteTasks();
         }
     }
@@ -559,6 +585,8 @@ public class TaskProgrammer : MonoBehaviour
     /// </summary>
     public void SaveCurrentPositionAsTask()
     {
+        Debug.Log("SaveCurrentPositionAsTask method called");
+        
         if (targetObject == null)
         {
             Debug.LogError("Cannot save position: Target object is missing!");
@@ -567,11 +595,13 @@ public class TaskProgrammer : MonoBehaviour
         
         // Get current position of the target object
         Vector3 currentPosition = targetObject.transform.position;
+        Debug.Log($"Current position retrieved: {currentPosition}");
         
         // Add a new task with the current position only (no gripper actions)
         AddTask(currentPosition, false, false);
         
         Debug.Log($"Saved current position as task: {currentPosition}");
+        Debug.Log("SaveCurrentPositionAsTask method completed successfully");
     }
     
     /// <summary>

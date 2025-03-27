@@ -357,25 +357,14 @@ MonoBehaviour:
   nativeAvatar: {fileID: 1252017586}
   udpCommComponent: {fileID: 4706292499343406789}
   savePositionButton: {fileID: 1351754141}
-  tasks:
-  - targetPosition: {x: 0, y: 0, z: 0}
-    openGripper: 0
-    closeGripper: 0
-    delayBeforeAction: 0
-    delayAfterAction: 0
-  - targetPosition: {x: 0, y: 0, z: 0}
-    openGripper: 0
-    closeGripper: 0
-    delayBeforeAction: 0
-    delayAfterAction: 0
+  tasks: []
   executeOnStart: 1
   repeatSequence: 1
-  initialExecutionDelay: 0
-  baseSpeed: 0.2
+  baseSpeed: 0.3
   minSpeed: 0
-  maxSpeed: 0.25
+  maxSpeed: 0.5
   distanceScalingFactor: 1
-  useJointDistanceScaling: 0
+  useJointDistanceScaling: 1
   jointDistanceThreshold: 1
   usePotentialField: 1
   attractionStrength: 1
@@ -386,6 +375,7 @@ MonoBehaviour:
   autoSave: 1
   saveFileName: task_sequence.json
   connectionMaxWaitTime: 60
+  startDelayAfterConnection: 0.5
 --- !u!4 &522346867
 Transform:
   m_ObjectHideFlags: 0
@@ -401,126 +391,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &701447005
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4706292499343406840}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 963bca90053e13b45a2a1f492f0f56f2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  wayPoints: {fileID: 0}
-  ToolCenterPoint: {fileID: 3797525683882037927}
-  MoveTarget: {fileID: 782037560873473847, guid: de0617e2f27bc3f43a39979b291b9d34, type: 3}
-  targetList: []
-  c1: {r: 0, g: 1, b: 1, a: 1}
-  c2: {r: 1, g: 0, b: 1, a: 1}
-  ogripObj: {fileID: 8769360475232291260, guid: 0995003641506ff47856031f88f83784, type: 3}
-  cgripObj: {fileID: 8769360475232291260, guid: 68fe4061be209dd4fa016ac63b87e98f, type: 3}
-  gripperController: {fileID: 4706292499343406845}
---- !u!120 &701447006
-LineRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4706292499343406840}
-  m_Enabled: 0
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 0
-  m_LightProbeUsage: 0
-  m_ReflectionProbeUsage: 0
-  m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 0}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_Positions:
-  - {x: 0, y: 0, z: 0}
-  - {x: 0, y: 0, z: 1}
-  m_Parameters:
-    serializedVersion: 3
-    widthMultiplier: 1
-    widthCurve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 1
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    colorGradient:
-      serializedVersion: 2
-      key0: {r: 1, g: 1, b: 1, a: 1}
-      key1: {r: 1, g: 1, b: 1, a: 1}
-      key2: {r: 0, g: 0, b: 0, a: 0}
-      key3: {r: 0, g: 0, b: 0, a: 0}
-      key4: {r: 0, g: 0, b: 0, a: 0}
-      key5: {r: 0, g: 0, b: 0, a: 0}
-      key6: {r: 0, g: 0, b: 0, a: 0}
-      key7: {r: 0, g: 0, b: 0, a: 0}
-      ctime0: 0
-      ctime1: 65535
-      ctime2: 0
-      ctime3: 0
-      ctime4: 0
-      ctime5: 0
-      ctime6: 0
-      ctime7: 0
-      atime0: 0
-      atime1: 65535
-      atime2: 0
-      atime3: 0
-      atime4: 0
-      atime5: 0
-      atime6: 0
-      atime7: 0
-      m_Mode: 0
-      m_NumColorKeys: 2
-      m_NumAlphaKeys: 2
-    numCornerVertices: 0
-    numCapVertices: 0
-    alignment: 0
-    textureMode: 0
-    shadowBias: 0.5
-    generateLightingData: 0
-  m_UseWorldSpace: 1
-  m_Loop: 0
 --- !u!1 &835287149
 GameObject:
   m_ObjectHideFlags: 0
@@ -1677,11 +1547,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4706292499343406842}
   - component: {fileID: 4706292499343406789}
-  - component: {fileID: 701447006}
-  - component: {fileID: 701447005}
-  - component: {fileID: 4706292499343406843}
-  - component: {fileID: 4706292499343406845}
-  - component: {fileID: 4706292499343406844}
   m_Layer: 0
   m_Name: EgmCommunicator
   m_TagString: Untagged
@@ -1704,54 +1569,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4706292499343406843
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4706292499343406840}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 707dc4952f8761943b29c851677edc53, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cube: {fileID: 3797525683882037927}
-  animations:
-  - {fileID: 4900000, guid: 6ff07973c214eeb4dbbe0b779f34df1e, type: 3}
-  gripperOpens: 1
-  grippy: {fileID: 4706292499343406844}
-  framesPerUpdate: 1
---- !u!114 &4706292499343406844
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4706292499343406840}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9eb8cd521e13d26498ac769b9e1c30da, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gripperController: {fileID: 4706292499343406845}
-  Graph: {fileID: 701447005}
---- !u!114 &4706292499343406845
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4706292499343406840}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 92c5d161e96b7bd4eb5927111bf69d8d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gripperType: rg6
-  ipAddress: 192.168.0.8
-  port: 502
-  defaultForce: 400
 --- !u!33 &5828433044532028533
 MeshFilter:
   m_ObjectHideFlags: 0
