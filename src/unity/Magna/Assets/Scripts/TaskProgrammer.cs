@@ -53,6 +53,8 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private bool useJointDistanceScaling = true;
     [SerializeField] [Tooltip("Distance threshold in meters. Speed is only adjusted when joints are closer than this")]
     private float jointDistanceThreshold = 1.5f;
+    [SerializeField] [Tooltip("Speed profile curve (Time: 0=Start, 1=End; Value: Speed Multiplier)")]
+    private AnimationCurve speedProfile = AnimationCurve.EaseInOut(0f, 0.1f, 1f, 0.1f); // Default: Start/end slow
     
     [Header("Potential Field Settings")]
     [SerializeField] private bool usePotentialField = true;
@@ -340,28 +342,54 @@ public class TaskProgrammer : MonoBehaviour
     /// </summary>
     private IEnumerator MoveToPosition(Vector3 targetPosition)
     {
+        Vector3 startPosition = targetObject.transform.position;
+        float totalDistance = Vector3.Distance(startPosition, targetPosition);
+
+        // Handle very short movements to avoid division by zero or weird behavior
+        if (totalDistance < 0.001f)
+        {
+            targetObject.transform.position = targetPosition;
+            yield break; // Exit if already at the target
+        }
+
         // Move towards target position over time
         while (Vector3.Distance(targetObject.transform.position, targetPosition) > 0.001f)
         {
-            // Calculate dynamic speed based on joint distances if enabled
-            float currentSpeed = baseSpeed;
-            
+            // Calculate base speed for this frame (considering joint distance scaling)
+            float frameMaxSpeed = baseSpeed;
             if (useJointDistanceScaling && nativeAvatar != null)
             {
-                currentSpeed = CalculateSpeedBasedOnJointDistances();
+                // Joint distance scaling acts as an upper limit based on proximity
+                frameMaxSpeed = CalculateSpeedBasedOnJointDistances();
             }
-            
+
+            // Calculate progress (0.0 to 1.0) along the path
+            float remainingDistance = Vector3.Distance(targetObject.transform.position, targetPosition);
+            float progress = Mathf.Clamp01(1.0f - (remainingDistance / totalDistance));
+
+            // Evaluate the speed profile curve based on progress
+            // The curve's value acts as a multiplier for the frameMaxSpeed
+            float speedMultiplier = speedProfile.Evaluate(progress);
+
+            // Calculate final speed for this frame
+            float currentSpeed = frameMaxSpeed * speedMultiplier;
+
+            // Clamp the final speed between min and max absolute limits
+            currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, maxSpeed);
+
+            // --- Apply movement using currentSpeed ---
             if (usePotentialField && nativeAvatar != null)
             {
                 // Calculate movement direction using potential field
                 Vector3 moveDirection = CalculatePotentialFieldForce(targetPosition);
-                
+
                 // Normalize and apply speed
                 if (moveDirection.magnitude > 0.001f)
                 {
                     moveDirection.Normalize();
                     targetObject.transform.position += moveDirection * currentSpeed * Time.deltaTime;
                 }
+                // If potential field force is zero (e.g., at equilibrium), don't move
             }
             else
             {
@@ -372,11 +400,11 @@ public class TaskProgrammer : MonoBehaviour
                     currentSpeed * Time.deltaTime
                 );
             }
-            
+
             yield return null;
         }
-        
-        // Ensure exact position
+
+        // Ensure exact position at the end
         targetObject.transform.position = targetPosition;
     }
     
