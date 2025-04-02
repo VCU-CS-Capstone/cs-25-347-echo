@@ -358,7 +358,7 @@ MonoBehaviour:
   udpCommComponent: {fileID: 4706292499343406789}
   savePositionButton: {fileID: 1351754141}
   tasks: []
-  executeOnStart: 1
+  executeOnStart: 0
   repeatSequence: 1
   baseSpeed: 0.3
   minSpeed: 0
@@ -400,6 +400,8 @@ MonoBehaviour:
   saveFileName: task_sequence.json
   connectionMaxWaitTime: 60
   startDelayAfterConnection: 0.5
+  boundaryMin: {x: -3, y: 0, z: -3}
+  boundaryMax: {x: 3, y: 3, z: 3}
 --- !u!4 &522346867
 Transform:
   m_ObjectHideFlags: 0
@@ -807,11 +809,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 11436578, guid: e999ace05c586574fa1b964016f28531, type: 3}
       propertyPath: depthWidth
-      value: 640
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 11436578, guid: e999ace05c586574fa1b964016f28531, type: 3}
       propertyPath: depthHeight
-      value: 480
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 11436578, guid: e999ace05c586574fa1b964016f28531, type: 3}
       propertyPath: maxActiveUsers
@@ -819,7 +821,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 11436578, guid: e999ace05c586574fa1b964016f28531, type: 3}
       propertyPath: customDepthResolution
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e999ace05c586574fa1b964016f28531, type: 3}
