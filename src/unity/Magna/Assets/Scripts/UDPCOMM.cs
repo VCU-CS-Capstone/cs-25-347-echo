@@ -27,7 +27,8 @@ public class UDPCOMM : MonoBehaviour
 
     /* Variable used to count the number of messages sent */
     private uint sequenceNumber = 0;
-    public GameObject cube;
+    public GameObject target; // The object whose position is sent to the robot
+    public GameObject follower; // The object whose position is set by the robot's initial message
     /* Robot cartesian position and rotation values */
     double x, y, z, rx, ry, rz;
     double xc, yc, zc;
@@ -69,14 +70,21 @@ public class UDPCOMM : MonoBehaviour
         startcom();
     }
 
-    /* (Unity) Update is called once per frame */
-    void Update()
+    /* (Unity) FixedUpdate is called once per fixed frame */
+    void FixedUpdate()
     {
-        cz = -cube.transform.position.z; //initialize variables above
-        cx = cube.transform.position.x;
-        cy = cube.transform.position.y;
+        // Read position and rotation from the follower GameObject
+        if (follower != null)
+        {
+            cz = -follower.transform.position.z;
+            cx = follower.transform.position.x;
+            cy = follower.transform.position.y;
 
-        CubeMove(cx, cy, cz, -cube.transform.eulerAngles.z - 180, cube.transform.eulerAngles.x, -cube.transform.eulerAngles.y - 180);
+            // Send follower's pose data to the robot
+            CubeMove(cx, cy, cz, -follower.transform.eulerAngles.z - 180, follower.transform.eulerAngles.x, -follower.transform.eulerAngles.y - 180);
+        } else {
+            Debug.LogWarning("Follower GameObject not assigned in UDPCOMM script. Cannot send position to robot.");
+        }
     }
 
     public void startcom()
@@ -165,7 +173,25 @@ public class UDPCOMM : MonoBehaviour
             ry = message.FeedBack.Cartesian.Euler.Y;
             rz = message.FeedBack.Cartesian.Euler.Z;
             egmState = message.MciState.State.ToString();
-            cube.transform.position = new Vector3((float)y / 1000, (float)z / 1000, (float)-x / 1000);
+            // Calculate the new position based on received robot data
+            Vector3 newPosition = new Vector3((float)y / 1000, (float)z / 1000, (float)-x / 1000);
+
+            // Set the target's position
+            if (target != null)
+            {
+                target.transform.position = newPosition;
+            } else {
+                 Debug.LogWarning("Target GameObject not assigned in UDPCOMM script.");
+            }
+
+            // Set the follower's position
+            if (follower != null)
+            {
+                 follower.transform.position = newPosition;
+            } else {
+                 Debug.LogWarning("Follower GameObject not assigned in UDPCOMM script.");
+            }
+
             // Log the initial position if not already logged
             if (!initialPositionLogged)
             {

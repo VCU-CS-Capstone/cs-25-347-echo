@@ -8,27 +8,81 @@ using UnityEngine.UI;
 // TODO: Set boundary restrictions
 // TODO: Redo task order implementation (gripper actions in relation to arm movement)
 
+// Enum to define the type of task
+public enum TaskType
+{
+    Movement,
+    Gripper
+}
+
+// Enum to define the specific gripper action
+public enum GripperActionType
+{
+    Open,
+    Close
+}
+
+// Base class for all tasks
+[System.Serializable]
+public abstract class BaseTask
+{
+    public TaskType taskType; // To identify the task type
+
+    [Header("Timing")]
+    [Tooltip("Delay in seconds after completing this task")]
+    public float delayAfterAction = 0.5f;
+
+    // Constructor to set the task type
+    protected BaseTask(TaskType type)
+    {
+        taskType = type;
+    }
+}
+
+// Derived class for movement tasks
+[System.Serializable]
+public class MovementTask : BaseTask
+{
+    [Header("Movement")]
+    public Vector3 targetPosition;
+
+    // Default constructor needed for serialization
+    public MovementTask() : base(TaskType.Movement) { }
+
+    // Constructor for creating movement tasks programmatically
+    public MovementTask(Vector3 position, float delay = 0.5f) : base(TaskType.Movement)
+    {
+        targetPosition = position;
+        delayAfterAction = delay;
+    }
+}
+
+// Derived class for gripper tasks
+[System.Serializable]
+public class GripperTask : BaseTask
+{
+    [Header("Gripper Action")]
+    public GripperActionType actionType;
+
+    // Default constructor needed for serialization
+    public GripperTask() : base(TaskType.Gripper) { }
+
+    // Constructor for creating gripper tasks programmatically
+    public GripperTask(GripperActionType action, float delay = 0.5f) : base(TaskType.Gripper)
+    {
+        actionType = action;
+        delayAfterAction = delay;
+    }
+}
+
+
 public class TaskProgrammer : MonoBehaviour
 {
     [System.Serializable]
-    public class ProgrammedTask
-    {
-        [Header("Position")]
-        public Vector3 targetPosition;
-        
-        [Header("Gripper Actions")]
-        public bool openGripper;
-        public bool closeGripper;
-        
-        [Header("Timing")]
-        [Tooltip("Delay in seconds after completing this task")]
-        public float delayAfterAction = 0.5f;
-    }
-    
-    [System.Serializable]
     private class TaskSaveData
     {
-        public List<ProgrammedTask> tasks = new List<ProgrammedTask>();
+        [SerializeReference] // Required for serializing derived types
+        public List<BaseTask> tasks = new List<BaseTask>();
     }
 
     [Header("References")]
@@ -41,7 +95,8 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private Button savePositionButton;
     
     [Header("Task Sequence")]
-    [SerializeField] private List<ProgrammedTask> tasks = new List<ProgrammedTask>();
+    [SerializeReference] // Required for polymorphism in Inspector/Serialization
+    [SerializeField] private List<BaseTask> tasks = new List<BaseTask>();
     
     [Header("Execution Settings")]
     [SerializeField] private bool executeOnStart = false;
@@ -295,27 +350,53 @@ public class TaskProgrammer : MonoBehaviour
         {
             for (int i = 0; i < tasks.Count; i++)
             {
-                ProgrammedTask task = tasks[i];
-                Debug.Log($"Executing task {i+1}/{tasks.Count}");
-                
-                // Move to position
-                yield return StartCoroutine(MoveToPosition(task.targetPosition));
-                Debug.Log($"Reached position: {task.targetPosition}");
-                
-                // Handle gripper actions
-                if (task.openGripper)
+                BaseTask task = tasks[i];
+                Debug.Log($"Executing task {i + 1}/{tasks.Count} (Type: {task.taskType})");
+
+                // Execute action based on task type
+                switch (task.taskType)
                 {
-                    Debug.Log("Opening gripper");
-                    yield return StartCoroutine(gripperController.OpenGripperAndWait());
+                    case TaskType.Movement:
+                        MovementTask moveTask = task as MovementTask;
+                        if (moveTask != null)
+                        {
+                            Debug.Log($"Moving to position: {moveTask.targetPosition}");
+                            yield return StartCoroutine(MoveToPosition(moveTask.targetPosition));
+                            Debug.Log($"Reached position: {moveTask.targetPosition}");
+                        }
+                        else
+                        {
+                            Debug.LogError($"Task {i + 1} is Movement type but failed to cast.");
+                        }
+                        break;
+
+                    case TaskType.Gripper:
+                        GripperTask gripperTask = task as GripperTask;
+                        if (gripperTask != null)
+                        {
+                            if (gripperTask.actionType == GripperActionType.Open)
+                            {
+                                Debug.Log("Opening gripper");
+                                yield return StartCoroutine(gripperController.OpenGripperAndWait());
+                            }
+                            else if (gripperTask.actionType == GripperActionType.Close)
+                            {
+                                Debug.Log("Closing gripper");
+                                yield return StartCoroutine(gripperController.CloseGripperAndWait());
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogError($"Task {i + 1} is Gripper type but failed to cast.");
+                        }
+                        break;
+
+                    default:
+                        Debug.LogWarning($"Unknown task type encountered: {task.taskType}");
+                        break;
                 }
-                
-                if (task.closeGripper)
-                {
-                    Debug.Log("Closing gripper");
-                    yield return StartCoroutine(gripperController.CloseGripperAndWait());
-                }
-                
-                // Wait for specified delay
+
+                // Wait for specified delay after the action
                 if (task.delayAfterAction > 0)
                 {
                     Debug.Log($"Waiting for {task.delayAfterAction} seconds");
@@ -507,27 +588,35 @@ public class TaskProgrammer : MonoBehaviour
     }
     
     /// <summary>
-    /// Adds a new task to the sequence at runtime
+    /// Adds a new Movement task to the sequence at runtime
     /// </summary>
-    public void AddTask(Vector3 position, bool openGripper, bool closeGripper, float delay = 0.5f)
+    public void AddMovementTask(Vector3 position, float delay = 0.5f)
     {
-        ProgrammedTask newTask = new ProgrammedTask
-        {
-            targetPosition = position,
-            openGripper = openGripper,
-            closeGripper = closeGripper,
-            delayAfterAction = delay
-        };
-        
+        MovementTask newTask = new MovementTask(position, delay);
         tasks.Add(newTask);
-        Debug.Log($"Added new task: Position={position}, Open={openGripper}, Close={closeGripper}, Delay={delay}");
+        Debug.Log($"Added new Movement Task: Position={position}, Delay={delay}");
         
         if (autoSave)
         {
             SaveTasks();
         }
     }
-    
+
+    /// <summary>
+    /// Adds a new Gripper task to the sequence at runtime
+    /// </summary>
+    public void AddGripperTask(GripperActionType action, float delay = 0.5f)
+    {
+        GripperTask newTask = new GripperTask(action, delay);
+        tasks.Add(newTask);
+        Debug.Log($"Added new Gripper Task: Action={action}, Delay={delay}");
+        
+        if (autoSave)
+        {
+            SaveTasks();
+        }
+    }
+
     /// <summary>
     /// Clears all tasks from the sequence
     /// </summary>
@@ -597,10 +686,10 @@ public class TaskProgrammer : MonoBehaviour
         Vector3 currentPosition = targetObject.transform.position;
         Debug.Log($"Current position retrieved: {currentPosition}");
         
-        // Add a new task with the current position only (no gripper actions)
-        AddTask(currentPosition, false, false);
+        // Add a new MovementTask with the current position
+        AddMovementTask(currentPosition); // Use the specific method for movement tasks
         
-        Debug.Log($"Saved current position as task: {currentPosition}");
+        Debug.Log($"Saved current position as Movement Task: {currentPosition}");
         Debug.Log("SaveCurrentPositionAsTask method completed successfully");
     }
     
