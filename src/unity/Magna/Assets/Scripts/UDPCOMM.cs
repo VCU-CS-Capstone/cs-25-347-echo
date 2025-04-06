@@ -223,11 +223,18 @@ public class UDPCOMM : MonoBehaviour
          * will not work. Hololens runs under Universal Windows Platform (UWP), which at the present
          * moment does not work with UdpClient class. DatagramSocket should be used instead. */
 
+        // Add random noise to position values to ensure new data is always sent
+        // Since position values are already multiplied by 1000 in CubeMove, we need larger noise values
+        // This represents about 0.5% of the scale, which is noticeable enough without causing significant jitter
+        double noiseX = zx + UnityEngine.Random.Range(-1f, 1f);
+        double noiseY = zy + UnityEngine.Random.Range(-1f, 1f);
+        double noiseZ = zz + UnityEngine.Random.Range(-1f, 1f);
+
         using (MemoryStream memoryStream = new())
         {
             EgmSensor message = new();
             /* Prepare a new message in EGM format */
-            CreatePoseMessage(message, zx, zy, zz, zrx, zry, zrz);
+            CreatePoseMessage(message, noiseX, noiseY, noiseZ, zrx, zry, zrz);
 
             message.WriteTo(memoryStream);
 

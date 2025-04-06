@@ -2,11 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
-using UnityEngine.UI;
-
-// TODO: Fix TaskProgrammer starting too soon
-// TODO: Set boundary restrictions
-// TODO: Redo task order implementation (gripper actions in relation to arm movement)
 
 // Enum to define the type of task
 public enum TaskType
@@ -91,8 +86,7 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private NuitrackSDK.Tutorials.FirstProject.NativeAvatar nativeAvatar;
     [SerializeField] private UDPCOMM udpCommComponent; // Reference to the UDPCOMM component
 
-    [Header("UI References")]
-    [SerializeField] private Button savePositionButton;
+    // No UI references needed
 
     [Header("Task Sequence")]
     [SerializeReference] // Required for polymorphism in Inspector/Serialization
@@ -101,18 +95,18 @@ public class TaskProgrammer : MonoBehaviour
     [Header("Execution Settings")]
     [SerializeField] private bool executeOnStart = false;
     [SerializeField] private bool repeatSequence = false;
+
+    [Header("Movement Speed")]
     [SerializeField] private float baseSpeed = 2.0f;
     [SerializeField] private float minSpeed = 0.5f;
     [SerializeField] private float maxSpeed = 5.0f;
-    [SerializeField] private float distanceScalingFactor = 1.0f;
+    [SerializeField] private float distanceScalingFactor = 1.0f; // This seems related to proximity, maybe move it? Let's keep it here for now.
+
+    [Header("Speed Proximity Adjustment")]
     [SerializeField] private bool useJointDistanceScaling = true;
     [SerializeField]
     [Tooltip("Distance threshold in meters. Speed is only adjusted when joints are closer than this")]
     private float jointDistanceThreshold = 1.5f;
-    [SerializeField]
-    [Tooltip("Speed profile curve (Time: 0=Start, 1=End; Value: Speed Multiplier)")]
-    private AnimationCurve speedProfile = AnimationCurve.EaseInOut(0f, 0.1f, 1f, 0.1f); // Default: Start/end slow
-
     [Header("Potential Field Settings")]
     [SerializeField] private bool usePotentialField = true;
     [SerializeField] private float attractionStrength = 1.0f;
@@ -130,6 +124,8 @@ public class TaskProgrammer : MonoBehaviour
     [Header("Save Settings")]
     [SerializeField] private bool autoSave = true;
     [SerializeField] private string saveFileName = "task_sequence.json";
+    [SerializeField] private float saveInterval = 0.5f; // How often to save (in seconds)
+    private float saveTimer = 0f;
 
     [Header("Connection Settings")]
     [SerializeField] private float connectionMaxWaitTime = 60f; // Maximum time to wait for connection in seconds
@@ -146,20 +142,14 @@ public class TaskProgrammer : MonoBehaviour
     private bool isExecuting = false;
     private bool isUdpConnected = false; // Flag to track if UDP connection is established
     private string SaveFilePath => Path.Combine(Application.persistentDataPath, saveFileName);
+    
+    // Public accessor for the target object (used by editor)
+    public GameObject GetTargetObject() => targetObject;
     private void Start()
     {
         Debug.Log("TaskProgrammer Start method called");
 
-        // Set up the save position button click event
-        if (savePositionButton != null)
-        {
-            Debug.Log("Setting up savePositionButton click event");
-            savePositionButton.onClick.AddListener(SaveCurrentPositionAsTask);
-        }
-        else
-        {
-            Debug.LogError("Save position button reference is missing! Button will not function.");
-        }
+        // No UI button setup needed
 
         // Validate references
         if (targetObject == null)
@@ -460,13 +450,8 @@ public class TaskProgrammer : MonoBehaviour
             float remainingDistance = Vector3.Distance(targetObject.transform.position, targetPosition);
             float progress = Mathf.Clamp01(1.0f - (remainingDistance / totalDistance));
 
-            // Evaluate the speed profile curve based on progress
-            // The curve's value acts as a multiplier for the frameMaxSpeed
-            float speedMultiplier = speedProfile.Evaluate(progress);
-
-            // Calculate final speed for this frame
-            float currentSpeed = frameMaxSpeed * speedMultiplier;
-
+            // Calculate final speed for this frame (Speed profile removed)
+            float currentSpeed = frameMaxSpeed;
             // Clamp the final speed between min and max absolute limits
             currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, maxSpeed);
 
@@ -651,27 +636,35 @@ public class TaskProgrammer : MonoBehaviour
         MovementTask newTask = new MovementTask(position, delay);
         tasks.Add(newTask);
         Debug.Log($"Added new Movement Task: Position={position}, Delay={delay}");
-        
-        if (autoSave)
-        {
-            SaveTasks();
-        }
     }
+/// <summary>
+/// Adds a new Gripper task to the sequence at runtime
+/// </summary>
+public void AddGripperTask(GripperActionType action, float delay = 0.5f)
+{
+    GripperTask newTask = new GripperTask(action, delay);
+    tasks.Add(newTask);
+    Debug.Log($"Added new Gripper Task: Action={action}, Delay={delay}");
+}
 
-    /// <summary>
-    /// Adds a new Gripper task to the sequence at runtime
-    /// </summary>
-    public void AddGripperTask(GripperActionType action, float delay = 0.5f)
+/// <summary>
+/// Update method to continuously save tasks at regular intervals
+/// </summary>
+private void Update()
+{
+    // Only save if autoSave is enabled
+    if (autoSave)
     {
-        GripperTask newTask = new GripperTask(action, delay);
-        tasks.Add(newTask);
-        Debug.Log($"Added new Gripper Task: Action={action}, Delay={delay}");
-        
-        if (autoSave)
+        // Save at the specified interval
+        saveTimer += Time.deltaTime;
+        if (saveTimer >= saveInterval)
         {
+            saveTimer = 0f;
             SaveTasks();
         }
     }
+}
+
 
 
     /// <summary>
@@ -681,11 +674,6 @@ public class TaskProgrammer : MonoBehaviour
     {
         tasks.Clear();
         Debug.Log("All tasks cleared");
-
-        if (autoSave)
-        {
-            SaveTasks();
-        }
     }
 
     /// <summary>
@@ -755,6 +743,7 @@ public class TaskProgrammer : MonoBehaviour
     /// </summary>
     public void SaveTasks()
     {
+        Debug.Log("SaveTasks method called"); // Added log statement
         try
         {
             TaskSaveData saveData = new TaskSaveData
