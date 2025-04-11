@@ -20,13 +20,6 @@ namespace NuitrackSDK.Tutorials.FirstProject
         public GameObject[] CreatedJoint; // Made public to access from TaskProgrammer
         public GameObject PrefabJoint;
 
-        [Header("Skeleton Customization")]
-        [Tooltip("Rotation in degrees around each axis for the entire skeleton")]
-        public Vector3 skeletonRotation = Vector3.zero;
-
-        [Tooltip("Scale factor for distances between joints (skeleton size)")]
-        [Range(0.1f, 3.0f)]
-        public float skeletonScale = 1.0f;
 
         void Start()
         {
@@ -62,18 +55,17 @@ namespace NuitrackSDK.Tutorials.FirstProject
                     // Get the original position
                     Vector3 originalPosition = joint.Position;
 
-                    // Apply skeleton rotation to the position (rotates the entire skeleton)
-                    if (skeletonRotation != Vector3.zero)
-                    {
-                        Quaternion rotation = Quaternion.Euler(skeletonRotation);
-                        originalPosition = rotation * originalPosition;
-                    }
+                    // The original position is now used directly, as rotation and scale come from the parent transform
+                    Vector3 scaledPosition = originalPosition; // Renaming this variable might be good later, but keep for now to minimize changes
 
-                    // Scale the position to adjust distances between joints
-                    Vector3 scaledPosition = originalPosition * skeletonScale;
+                    // Apply the parent's scale to the calculated local offset
+                    Vector3 scaledOffset = Vector3.Scale(scaledPosition, transform.localScale);
 
-                    // Apply position with scaling and skeleton rotation
-                    CreatedJoint[q].transform.localPosition = scaledPosition;
+                    // Calculate the final world position based on parent's transform and the scaled & parent-scaled offset
+                    Vector3 worldPosition = transform.position + transform.rotation * scaledOffset;
+
+                    // Apply the calculated world position. Rotation is inherited from the parent.
+                    CreatedJoint[q].transform.position = worldPosition;
                 }
             }
             else
