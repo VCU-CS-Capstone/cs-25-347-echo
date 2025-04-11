@@ -8,11 +8,9 @@ using System.Net.Sockets;
 using Google.Protobuf;
 using System;
 
-// TODO: Fix jolting
-
 public class UDPCOMM : MonoBehaviour
 {
-
+    [Header("Connection Settings")]
     /* UDP port where EGM communication should happen (specified in RobotStudio) */
     public static int port = 6511;
     /* UDP client used to send messages from computer to robot */
@@ -24,6 +22,13 @@ public class UDPCOMM : MonoBehaviour
     private IPEndPoint robotAddress;
 
     public string robotIpAddress = "192.168.0.4";
+    
+    [Header("Noise Configuration")]
+    [Tooltip("Enable or disable position noise")]
+    public bool enableNoise = true;
+    
+    [Tooltip("Amount of noise to add (±) in mm")]
+    public float noiseAmount = 1f;
 
     /* Variable used to count the number of messages sent */
     private uint sequenceNumber = 0;
@@ -52,14 +57,14 @@ public class UDPCOMM : MonoBehaviour
 
     /* Flag to track if we've logged the initial position */
     private bool initialPositionLogged = false;
-    
+
     /* Connection status tracking */
     private bool isConnectionEstablished = false;
-    
+
     // Public properties to expose connection status
     public bool IsConnectionEstablished => isConnectionEstablished;
     public string EgmState => egmState;
-    
+
     // Property to check if EGM is in RUNNING state
     public bool IsEgmRunning => egmState == "RUNNING";
 
@@ -82,7 +87,9 @@ public class UDPCOMM : MonoBehaviour
 
             // Send follower's pose data to the robot
             CubeMove(cx, cy, cz, -follower.transform.eulerAngles.z - 180, follower.transform.eulerAngles.x, -follower.transform.eulerAngles.y - 180);
-        } else {
+        }
+        else
+        {
             Debug.LogWarning("Follower GameObject not assigned in UDPCOMM script. Cannot send position to robot.");
         }
     }
@@ -180,16 +187,20 @@ public class UDPCOMM : MonoBehaviour
             if (target != null)
             {
                 target.transform.position = newPosition;
-            } else {
-                 Debug.LogWarning("Target GameObject not assigned in UDPCOMM script.");
+            }
+            else
+            {
+                Debug.LogWarning("Target GameObject not assigned in UDPCOMM script.");
             }
 
             // Set the follower's position
             if (follower != null)
             {
-                 follower.transform.position = newPosition;
-            } else {
-                 Debug.LogWarning("Follower GameObject not assigned in UDPCOMM script.");
+                follower.transform.position = newPosition;
+            }
+            else
+            {
+                Debug.LogWarning("Follower GameObject not assigned in UDPCOMM script.");
             }
 
             // Log the initial position if not already logged
@@ -206,13 +217,6 @@ public class UDPCOMM : MonoBehaviour
             Console.WriteLine("The message received from robot is invalid.");
         }
     }
-    
-    // Add method to reset connection status (useful for error handling)
-    public void ResetConnectionStatus()
-    {
-        isConnectionEstablished = false;
-        Debug.Log("UDPCOMM connection status reset");
-    }
 
     private void SendPoseMessageToRobot(double zx, double zy, double zz, double zrx, double zry, double zrz)
     {
@@ -223,12 +227,19 @@ public class UDPCOMM : MonoBehaviour
          * will not work. Hololens runs under Universal Windows Platform (UWP), which at the present
          * moment does not work with UdpClient class. DatagramSocket should be used instead. */
 
-        // Add random noise to position values to ensure new data is always sent
+        // Add configurable random noise to position values to ensure new data is always sent
         // Since position values are already multiplied by 1000 in CubeMove, we need larger noise values
-        // This represents about 0.5% of the scale, which is noticeable enough without causing significant jitter
-        double noiseX = zx + UnityEngine.Random.Range(-1f, 1f);
-        double noiseY = zy + UnityEngine.Random.Range(-1f, 1f);
-        double noiseZ = zz + UnityEngine.Random.Range(-1f, 1f);
+        double noiseX = zx;
+        double noiseY = zy;
+        double noiseZ = zz;
+        
+        // Apply noise only if enabled
+        if (enableNoise)
+        {
+            noiseX += UnityEngine.Random.Range(-noiseAmount, noiseAmount);
+            noiseY += UnityEngine.Random.Range(-noiseAmount, noiseAmount);
+            noiseZ += UnityEngine.Random.Range(-noiseAmount, noiseAmount);
+        }
 
         using (MemoryStream memoryStream = new())
         {

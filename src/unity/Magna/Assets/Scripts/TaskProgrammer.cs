@@ -86,8 +86,6 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private NuitrackSDK.Tutorials.FirstProject.NativeAvatar nativeAvatar;
     [SerializeField] private UDPCOMM udpCommComponent; // Reference to the UDPCOMM component
 
-    // No UI references needed
-
     [Header("Task Sequence")]
     [SerializeReference] // Required for polymorphism in Inspector/Serialization
     [SerializeField] private List<BaseTask> tasks = new List<BaseTask>();
@@ -97,29 +95,13 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private bool repeatSequence = false;
 
     [Header("Movement Speed")]
-    [SerializeField] private float baseSpeed = 2.0f;
-    [SerializeField] private float minSpeed = 0.5f;
-    [SerializeField] private float maxSpeed = 5.0f;
-    [SerializeField] private float distanceScalingFactor = 1.0f; // This seems related to proximity, maybe move it? Let's keep it here for now.
-
-    [Header("Speed Proximity Adjustment")]
-    [SerializeField] private bool useJointDistanceScaling = true;
-    [SerializeField]
-    [Tooltip("Distance threshold in meters. Speed is only adjusted when joints are closer than this")]
-    private float jointDistanceThreshold = 1.5f;
-    [Header("Potential Field Settings")]
-    [SerializeField] private bool usePotentialField = true;
-    [SerializeField] private float attractionStrength = 1.0f;
-    [SerializeField]
-    [Tooltip("Higher values create stronger attraction at longer distances")]
-    private float attractionFalloff = 0.5f;
-    [SerializeField] private float repulsionStrength = 2.0f;
-    [SerializeField]
-    [Tooltip("Higher values create stronger repulsion at closer distances")]
-    private float repulsionFalloff = 2.0f;
-    [SerializeField]
-    [Tooltip("Maximum distance at which joints create repulsive forces")]
-    private float repulsionRadius = 1.0f;
+    [SerializeField] private float movementSpeed = 2.0f;
+    
+    [Header("Boundary Settings")]
+    [Tooltip("Minimum boundary corner (world space)")]
+    public Vector3 boundaryMin = new Vector3(-5f, 0f, -5f); // Example default
+    [Tooltip("Maximum boundary corner (world space)")]
+    public Vector3 boundaryMax = new Vector3(5f, 5f, 5f);   // Example default
 
     [Header("Save Settings")]
     [SerializeField] private bool autoSave = true;
@@ -132,24 +114,34 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField]
     [Tooltip("Delay in seconds after connection is established before starting task execution")]
     private float startDelayAfterConnection = 2.0f; // Default 2-second delay after connection
-    [Header("Boundary Settings")]
-    [Tooltip("Minimum boundary corner (world space)")]
-    public Vector3 boundaryMin = new Vector3(-5f, 0f, -5f); // Example default
-    [Tooltip("Maximum boundary corner (world space)")]
-    public Vector3 boundaryMax = new Vector3(5f, 5f, 5f);   // Example default
-
 
     private bool isExecuting = false;
     private bool isUdpConnected = false; // Flag to track if UDP connection is established
     private string SaveFilePath => Path.Combine(Application.persistentDataPath, saveFileName);
     
-    // Public accessor for the target object (used by editor)
+    // Public accessors
     public GameObject GetTargetObject() => targetObject;
+    public Vector3 GetBoundaryMin() => boundaryMin;
+    public Vector3 GetBoundaryMax() => boundaryMax;
+    
+    // Static instance for easy access from other scripts
+    public static TaskProgrammer Instance { get; private set; }
+    private void Awake()
+    {
+        // Set up singleton instance
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else if (Instance != this)
+        {
+            Debug.LogWarning("Multiple TaskProgrammer instances detected. Only using the first one.");
+        }
+    }
+
     private void Start()
     {
         Debug.Log("TaskProgrammer Start method called");
-
-        // No UI button setup needed
 
         // Validate references
         if (targetObject == null)
@@ -169,23 +161,10 @@ public class TaskProgrammer : MonoBehaviour
             }
         }
 
-        if (nativeAvatar == null && useJointDistanceScaling)
+        if (nativeAvatar == null)
         {
-            Debug.LogWarning("NativeAvatar reference is missing but joint distance scaling is enabled!");
+            Debug.LogWarning("NativeAvatar reference is missing!");
             nativeAvatar = FindObjectOfType<NuitrackSDK.Tutorials.FirstProject.NativeAvatar>();
-
-            if (nativeAvatar == null)
-            {
-                Debug.LogWarning("Could not find NativeAvatar in the scene. Joint distance scaling will be disabled.");
-                useJointDistanceScaling = false;
-            }
-        }
-
-        // No need to check for a separate joint distance target since we're using targetObject for that purpose
-        if (targetObject == null && useJointDistanceScaling)
-        {
-            Debug.LogWarning("Target object is missing but joint distance scaling is enabled!");
-            useJointDistanceScaling = false;
         }
 
         // Find UDPCOMM component if not assigned
@@ -422,6 +401,7 @@ public class TaskProgrammer : MonoBehaviour
 
     /// <summary>
     /// Coroutine that moves the target object to the specified position
+    /// with joint avoidance that gravitates towards the base only when avoiding joints
     /// </summary>
     private IEnumerator MoveToPosition(Vector3 targetPosition)
     {
@@ -435,61 +415,33 @@ public class TaskProgrammer : MonoBehaviour
             yield break; // Exit if already at the target
         }
 
+        // Get the base position of the robot arm
+        Vector3 basePosition = GetRobotBasePosition();
+        
         // Move towards target position over time
         while (Vector3.Distance(targetObject.transform.position, targetPosition) > 0.001f)
         {
-            // Calculate base speed for this frame (considering joint distance scaling)
-            float frameMaxSpeed = baseSpeed;
-            if (useJointDistanceScaling && nativeAvatar != null)
-            {
-                // Joint distance scaling acts as an upper limit based on proximity
-                frameMaxSpeed = CalculateSpeedBasedOnJointDistances();
-            }
+            // Check if we need to avoid any joints and get the avoidance info
+            bool needsAvoidance;
+            Vector3 adjustedTarget = CalculateJointAvoidancePosition(targetPosition, basePosition, out needsAvoidance);
+            
+            // Only use the adjusted target if we need to avoid joints
+            Vector3 targetToUse = needsAvoidance ? adjustedTarget : targetPosition;
+            
+            // Calculate next position using constant speed
+            Vector3 nextPosition = Vector3.MoveTowards(
+                targetObject.transform.position,
+                targetToUse,
+                movementSpeed * Time.deltaTime
+            );
 
-            // Calculate progress (0.0 to 1.0) along the path
-            float remainingDistance = Vector3.Distance(targetObject.transform.position, targetPosition);
-            float progress = Mathf.Clamp01(1.0f - (remainingDistance / totalDistance));
+            // Clamp to boundaries
+            nextPosition.x = Mathf.Clamp(nextPosition.x, boundaryMin.x, boundaryMax.x);
+            nextPosition.y = Mathf.Clamp(nextPosition.y, boundaryMin.y, boundaryMax.y);
+            nextPosition.z = Mathf.Clamp(nextPosition.z, boundaryMin.z, boundaryMax.z);
 
-            // Calculate final speed for this frame (Speed profile removed)
-            float currentSpeed = frameMaxSpeed;
-            // Clamp the final speed between min and max absolute limits
-            currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, maxSpeed);
-
-            // --- Calculate potential next position ---
-            Vector3 potentialNextPosition;
-            if (usePotentialField && nativeAvatar != null)
-            {
-                // Calculate movement direction using potential field
-                Vector3 moveDirection = CalculatePotentialFieldForce(targetPosition);
-
-                // Calculate position delta based on force and speed
-                if (moveDirection.magnitude > 0.001f)
-                {
-                    potentialNextPosition = targetObject.transform.position + moveDirection.normalized * currentSpeed * Time.deltaTime;
-                }
-                else
-                {
-                    // If potential field force is zero, stay put for this frame relative to potential field logic
-                    potentialNextPosition = targetObject.transform.position;
-                }
-            }
-            else
-            {
-                // Traditional direct movement calculation
-                potentialNextPosition = Vector3.MoveTowards(
-                    targetObject.transform.position,
-                    targetPosition,
-                    currentSpeed * Time.deltaTime
-                );
-            }
-
-            // --- Clamp the potential position within boundaries ---
-            potentialNextPosition.x = Mathf.Clamp(potentialNextPosition.x, boundaryMin.x, boundaryMax.x);
-            potentialNextPosition.y = Mathf.Clamp(potentialNextPosition.y, boundaryMin.y, boundaryMax.y);
-            potentialNextPosition.z = Mathf.Clamp(potentialNextPosition.z, boundaryMin.z, boundaryMax.z);
-
-            // --- Apply the clamped position ---
-            targetObject.transform.position = potentialNextPosition;
+            // Apply the position
+            targetObject.transform.position = nextPosition;
 
             yield return null;
         }
@@ -501,131 +453,140 @@ public class TaskProgrammer : MonoBehaviour
         finalClampedPosition.z = Mathf.Clamp(finalClampedPosition.z, boundaryMin.z, boundaryMax.z);
         targetObject.transform.position = finalClampedPosition;
     }
-
+    
     /// <summary>
-    /// Calculates the combined force vector using the potential field method.
-    /// Combines attractive force to target with repulsive forces from all joints.
+    /// Gets the position of the robot arm base
     /// </summary>
-    private Vector3 CalculatePotentialFieldForce(Vector3 targetPosition)
+    private Vector3 GetRobotBasePosition()
     {
-        if (nativeAvatar == null || nativeAvatar.CreatedJoint == null)
+        // If we have a reference to the UDPCOMM component and its joint1
+        if (udpCommComponent != null && udpCommComponent.joint1 != null)
         {
-            // If no joints to avoid, just move directly to target
-            return targetPosition - targetObject.transform.position;
+            return udpCommComponent.joint1.transform.position;
         }
-
-        // Calculate attractive force towards target
-        Vector3 toTarget = targetPosition - targetObject.transform.position;
-        float distanceToTarget = toTarget.magnitude;
-
-        // Attractive force decreases with distance based on falloff parameter
-        // Higher attractionFalloff means stronger attraction at longer distances
-        float attractionMagnitude = attractionStrength;
-        if (distanceToTarget > 0.001f)
+        
+        // Fallback: If we have NativeAvatar with joints
+        if (nativeAvatar != null && nativeAvatar.CreatedJoint != null && nativeAvatar.typeJoint != null)
         {
-            attractionMagnitude = attractionStrength / Mathf.Pow(distanceToTarget, attractionFalloff);
-        }
-
-        Vector3 attractiveForce = toTarget.normalized * attractionMagnitude;
-
-        // Calculate repulsive forces from all joints
-        Vector3 repulsiveForce = Vector3.zero;
-
-        foreach (GameObject joint in nativeAvatar.CreatedJoint)
-        {
-            if (joint != null && joint.activeSelf)
+            // Try to find a base joint like Waist or Torso
+            for (int i = 0; i < nativeAvatar.typeJoint.Length; i++)
             {
-                Vector3 toJoint = targetObject.transform.position - joint.transform.position;
-                float distanceToJoint = toJoint.magnitude;
-
-                // Only apply repulsion within the specified radius
-                if (distanceToJoint < repulsionRadius)
+                if (nativeAvatar.typeJoint[i] == nuitrack.JointType.Waist ||
+                    nativeAvatar.typeJoint[i] == nuitrack.JointType.Torso)
                 {
-                    // Repulsive force increases as distance decreases
-                    // Higher repulsionFalloff means stronger repulsion at closer distances
-                    float repulsionMagnitude = repulsionStrength *
-                        Mathf.Pow((repulsionRadius - distanceToJoint) / repulsionRadius, repulsionFalloff);
-
-                    // Add repulsive force from this joint
-                    repulsiveForce += toJoint.normalized * repulsionMagnitude;
+                    if (nativeAvatar.CreatedJoint[i] != null && nativeAvatar.CreatedJoint[i].activeSelf)
+                    {
+                        return nativeAvatar.CreatedJoint[i].transform.position;
+                    }
+                }
+            }
+            
+            // If no specific base joint found, use the first active joint
+            for (int i = 0; i < nativeAvatar.CreatedJoint.Length; i++)
+            {
+                if (nativeAvatar.CreatedJoint[i] != null && nativeAvatar.CreatedJoint[i].activeSelf)
+                {
+                    return nativeAvatar.CreatedJoint[i].transform.position;
                 }
             }
         }
-
-        // Combine forces
-        Vector3 totalForce = attractiveForce + repulsiveForce;
-
-        // Debug visualization
-        Debug.DrawRay(targetObject.transform.position, attractiveForce, Color.green);
-        Debug.DrawRay(targetObject.transform.position, repulsiveForce, Color.red);
-        Debug.DrawRay(targetObject.transform.position, totalForce, Color.blue);
-
-        return totalForce;
+        
+        // If no valid base position found, return a default position
+        return new Vector3(0, 1, 0);
     }
-
+    
     /// <summary>
-    /// Calculates movement speed based on the distance of the closest joint to the target object.
-    /// Only adjusts speed if the closest joint is within the distance threshold.
-    /// Uses a non-linear curve for speed adjustment appropriate for collaborative robots.
+    /// Calculates a position that avoids joints and gravitates towards the base only when avoiding
     /// </summary>
-    private float CalculateSpeedBasedOnJointDistances()
+    private Vector3 CalculateJointAvoidancePosition(Vector3 originalTarget, Vector3 basePosition, out bool needsAvoidance)
     {
-        if (nativeAvatar == null || nativeAvatar.CreatedJoint == null)
+        Vector3 avoidanceVector = Vector3.zero;
+        int activeJointCount = 0;
+        float avoidanceRadius = 0.3f; // Radius around joints to avoid
+        needsAvoidance = false;
+        
+        // Check for joints to avoid from UDPCOMM
+        if (udpCommComponent != null)
         {
-            return baseSpeed;
-        }
-
-        float minDistance = float.MaxValue;
-        bool foundActiveJoint = false;
-
-        // Find the closest active joint to the target object
-        foreach (GameObject joint in nativeAvatar.CreatedJoint)
-        {
-            if (joint != null && joint.activeSelf)
+            GameObject[] joints = new GameObject[]
             {
-                float distance = Vector3.Distance(joint.transform.position, targetObject.transform.position);
-                if (distance < minDistance)
+                udpCommComponent.joint2, // Skip joint1 as it's the base
+                udpCommComponent.joint3,
+                udpCommComponent.joint4,
+                udpCommComponent.joint5,
+                udpCommComponent.joint6
+            };
+            
+            foreach (GameObject joint in joints)
+            {
+                if (joint != null)
                 {
-                    minDistance = distance;
-                    foundActiveJoint = true;
+                    float distance = Vector3.Distance(originalTarget, joint.transform.position);
+                    if (distance < avoidanceRadius)
+                    {
+                        // Calculate avoidance vector (away from joint)
+                        Vector3 awayDir = (originalTarget - joint.transform.position).normalized;
+                        float avoidanceStrength = 1.0f - (distance / avoidanceRadius); // Stronger when closer
+                        avoidanceVector += awayDir * avoidanceStrength;
+                        activeJointCount++;
+                        needsAvoidance = true;
+                    }
                 }
             }
         }
-
-        // If no active joints, return base speed
-        if (!foundActiveJoint)
+        
+        // Check for joints to avoid from NativeAvatar
+        if (nativeAvatar != null && nativeAvatar.CreatedJoint != null)
         {
-            return baseSpeed;
+            for (int i = 0; i < nativeAvatar.CreatedJoint.Length; i++)
+            {
+                GameObject joint = nativeAvatar.CreatedJoint[i];
+                if (joint != null && joint.activeSelf)
+                {
+                    // Skip base joints (like Waist or Torso)
+                    if (i < nativeAvatar.typeJoint.Length &&
+                        (nativeAvatar.typeJoint[i] == nuitrack.JointType.Waist ||
+                         nativeAvatar.typeJoint[i] == nuitrack.JointType.Torso))
+                    {
+                        continue;
+                    }
+                    
+                    float distance = Vector3.Distance(originalTarget, joint.transform.position);
+                    if (distance < avoidanceRadius)
+                    {
+                        // Calculate avoidance vector (away from joint)
+                        Vector3 awayDir = (originalTarget - joint.transform.position).normalized;
+                        float avoidanceStrength = 1.0f - (distance / avoidanceRadius); // Stronger when closer
+                        avoidanceVector += awayDir * avoidanceStrength;
+                        activeJointCount++;
+                        needsAvoidance = true;
+                    }
+                }
+            }
         }
-
-        // If distance is greater than threshold, use base speed
-        if (minDistance >= jointDistanceThreshold)
+        
+        // Apply avoidance and gravitation only if joints need to be avoided
+        if (needsAvoidance)
         {
-            return baseSpeed;
+            // Normalize and scale the avoidance vector
+            if (activeJointCount > 0)
+            {
+                avoidanceVector = avoidanceVector.normalized * Mathf.Min(avoidanceVector.magnitude, avoidanceRadius);
+            }
+            
+            // Calculate direction towards base
+            Vector3 baseDirection = (basePosition - originalTarget).normalized;
+            
+            // Blend between avoidance and base gravitation
+            // The closer we are to a joint, the more we gravitate towards the base
+            float gravitationStrength = Mathf.Min(1.0f, avoidanceVector.magnitude / avoidanceRadius) * 0.5f;
+            
+            // Return a position that both avoids joints and gravitates towards the base
+            return originalTarget + avoidanceVector + (baseDirection * gravitationStrength);
         }
-
-        // Calculate normalized distance (0 to 1) within the threshold
-        float normalizedDistance = minDistance / jointDistanceThreshold;
-
-        // Apply quadratic curve for more natural deceleration
-        // This creates a curve that:
-        // - Starts at baseSpeed when distance = threshold
-        // - Decreases more rapidly as distance approaches zero
-        // - Reaches minSpeed when distance = 0
-        float speedRange = baseSpeed - minSpeed;
-        float speedFactor = normalizedDistance * normalizedDistance; // Quadratic curve
-        float scaledSpeed = minSpeed + (speedFactor * speedRange);
-
-        // Apply additional scaling factor if needed
-        if (distanceScalingFactor != 1.0f)
-        {
-            // Apply scaling factor while maintaining the curve shape
-            float adjustedSpeed = baseSpeed - ((baseSpeed - scaledSpeed) * distanceScalingFactor);
-            scaledSpeed = adjustedSpeed;
-        }
-
-        // Clamp speed between min and max values
-        return Mathf.Clamp(scaledSpeed, minSpeed, maxSpeed);
+        
+        // If no avoidance needed, return the original target
+        return originalTarget;
     }
 
     /// <summary>
@@ -637,35 +598,34 @@ public class TaskProgrammer : MonoBehaviour
         tasks.Add(newTask);
         Debug.Log($"Added new Movement Task: Position={position}, Delay={delay}");
     }
-/// <summary>
-/// Adds a new Gripper task to the sequence at runtime
-/// </summary>
-public void AddGripperTask(GripperActionType action, float delay = 0.5f)
-{
-    GripperTask newTask = new GripperTask(action, delay);
-    tasks.Add(newTask);
-    Debug.Log($"Added new Gripper Task: Action={action}, Delay={delay}");
-}
 
-/// <summary>
-/// Update method to continuously save tasks at regular intervals
-/// </summary>
-private void Update()
-{
-    // Only save if autoSave is enabled
-    if (autoSave)
+    /// <summary>
+    /// Adds a new Gripper task to the sequence at runtime
+    /// </summary>
+    public void AddGripperTask(GripperActionType action, float delay = 0.5f)
     {
-        // Save at the specified interval
-        saveTimer += Time.deltaTime;
-        if (saveTimer >= saveInterval)
+        GripperTask newTask = new GripperTask(action, delay);
+        tasks.Add(newTask);
+        Debug.Log($"Added new Gripper Task: Action={action}, Delay={delay}");
+    }
+
+    /// <summary>
+    /// Update method to continuously save tasks at regular intervals
+    /// </summary>
+    private void Update()
+    {
+        // Only save if autoSave is enabled
+        if (autoSave)
         {
-            saveTimer = 0f;
-            SaveTasks();
+            // Save at the specified interval
+            saveTimer += Time.deltaTime;
+            if (saveTimer >= saveInterval)
+            {
+                saveTimer = 0f;
+                SaveTasks();
+            }
         }
     }
-}
-
-
 
     /// <summary>
     /// Clears all tasks from the sequence
@@ -743,7 +703,7 @@ private void Update()
     /// </summary>
     public void SaveTasks()
     {
-        Debug.Log("SaveTasks method called"); // Added log statement
+        Debug.Log("SaveTasks method called");
         try
         {
             TaskSaveData saveData = new TaskSaveData
