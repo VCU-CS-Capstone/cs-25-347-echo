@@ -374,8 +374,6 @@ MonoBehaviour:
   executeOnStart: 1
   repeatSequence: 1
   movementSpeed: 0.5
-  boundaryMin: {x: -0.5, y: 0.35, z: -0.7}
-  boundaryMax: {x: 0.5, y: 0.5, z: -0.2}
   autoSave: 1
   saveFileName: task_sequence.json
   saveInterval: 0.5
@@ -1248,7 +1246,6 @@ GameObject:
   - component: {fileID: 3797525683882037922}
   - component: {fileID: 3797525683882037925}
   - component: {fileID: 3797525683882037935}
-  - component: {fileID: 3797525683882037936}
   m_Layer: 0
   m_Name: Target
   m_TagString: Untagged
@@ -1270,21 +1267,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 1
   useLocalSpace: 1
---- !u!114 &3797525683882037936
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3797525683882037927}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 182403eba2e25464981df38daf4c6c98, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  taskProgrammer: {fileID: 522346866}
-  constrainContinuously: 1
-  showDebugMessages: 0
 --- !u!33 &3847253973472018358
 MeshFilter:
   m_ObjectHideFlags: 0

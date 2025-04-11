@@ -97,11 +97,6 @@ public class TaskProgrammer : MonoBehaviour
     [Header("Movement Speed")]
     [SerializeField] private float movementSpeed = 2.0f;
     
-    [Header("Boundary Settings")]
-    [Tooltip("Minimum boundary corner (world space)")]
-    public Vector3 boundaryMin = new Vector3(-5f, 0f, -5f); // Example default
-    [Tooltip("Maximum boundary corner (world space)")]
-    public Vector3 boundaryMax = new Vector3(5f, 5f, 5f);   // Example default
 
     [Header("Save Settings")]
     [SerializeField] private bool autoSave = true;
@@ -121,8 +116,6 @@ public class TaskProgrammer : MonoBehaviour
     
     // Public accessors
     public GameObject GetTargetObject() => targetObject;
-    public Vector3 GetBoundaryMin() => boundaryMin;
-    public Vector3 GetBoundaryMax() => boundaryMax;
     
     // Static instance for easy access from other scripts
     public static TaskProgrammer Instance { get; private set; }
@@ -401,7 +394,6 @@ public class TaskProgrammer : MonoBehaviour
 
     /// <summary>
     /// Coroutine that moves the target object to the specified position
-    /// with joint avoidance that gravitates towards the base only when avoiding joints
     /// </summary>
     private IEnumerator MoveToPosition(Vector3 targetPosition)
     {
@@ -415,30 +407,16 @@ public class TaskProgrammer : MonoBehaviour
             yield break; // Exit if already at the target
         }
 
-        // Get the base position of the robot arm
-        Vector3 basePosition = GetRobotBasePosition();
-        
         // Move towards target position over time
         while (Vector3.Distance(targetObject.transform.position, targetPosition) > 0.001f)
         {
-            // Check if we need to avoid any joints and get the avoidance info
-            bool needsAvoidance;
-            Vector3 adjustedTarget = CalculateJointAvoidancePosition(targetPosition, basePosition, out needsAvoidance);
-            
-            // Only use the adjusted target if we need to avoid joints
-            Vector3 targetToUse = needsAvoidance ? adjustedTarget : targetPosition;
-            
             // Calculate next position using constant speed
             Vector3 nextPosition = Vector3.MoveTowards(
                 targetObject.transform.position,
-                targetToUse,
+                targetPosition,
                 movementSpeed * Time.deltaTime
             );
 
-            // Clamp to boundaries
-            nextPosition.x = Mathf.Clamp(nextPosition.x, boundaryMin.x, boundaryMax.x);
-            nextPosition.y = Mathf.Clamp(nextPosition.y, boundaryMin.y, boundaryMax.y);
-            nextPosition.z = Mathf.Clamp(nextPosition.z, boundaryMin.z, boundaryMax.z);
 
             // Apply the position
             targetObject.transform.position = nextPosition;
@@ -446,147 +424,8 @@ public class TaskProgrammer : MonoBehaviour
             yield return null;
         }
 
-        // Ensure exact position at the end, clamped to boundaries
-        Vector3 finalClampedPosition = targetPosition;
-        finalClampedPosition.x = Mathf.Clamp(finalClampedPosition.x, boundaryMin.x, boundaryMax.x);
-        finalClampedPosition.y = Mathf.Clamp(finalClampedPosition.y, boundaryMin.y, boundaryMax.y);
-        finalClampedPosition.z = Mathf.Clamp(finalClampedPosition.z, boundaryMin.z, boundaryMax.z);
-        targetObject.transform.position = finalClampedPosition;
-    }
-    
-    /// <summary>
-    /// Gets the position of the robot arm base
-    /// </summary>
-    private Vector3 GetRobotBasePosition()
-    {
-        // If we have a reference to the UDPCOMM component and its joint1
-        if (udpCommComponent != null && udpCommComponent.joint1 != null)
-        {
-            return udpCommComponent.joint1.transform.position;
-        }
-        
-        // Fallback: If we have NativeAvatar with joints
-        if (nativeAvatar != null && nativeAvatar.CreatedJoint != null && nativeAvatar.typeJoint != null)
-        {
-            // Try to find a base joint like Waist or Torso
-            for (int i = 0; i < nativeAvatar.typeJoint.Length; i++)
-            {
-                if (nativeAvatar.typeJoint[i] == nuitrack.JointType.Waist ||
-                    nativeAvatar.typeJoint[i] == nuitrack.JointType.Torso)
-                {
-                    if (nativeAvatar.CreatedJoint[i] != null && nativeAvatar.CreatedJoint[i].activeSelf)
-                    {
-                        return nativeAvatar.CreatedJoint[i].transform.position;
-                    }
-                }
-            }
-            
-            // If no specific base joint found, use the first active joint
-            for (int i = 0; i < nativeAvatar.CreatedJoint.Length; i++)
-            {
-                if (nativeAvatar.CreatedJoint[i] != null && nativeAvatar.CreatedJoint[i].activeSelf)
-                {
-                    return nativeAvatar.CreatedJoint[i].transform.position;
-                }
-            }
-        }
-        
-        // If no valid base position found, return a default position
-        return new Vector3(0, 1, 0);
-    }
-    
-    /// <summary>
-    /// Calculates a position that avoids joints and gravitates towards the base only when avoiding
-    /// </summary>
-    private Vector3 CalculateJointAvoidancePosition(Vector3 originalTarget, Vector3 basePosition, out bool needsAvoidance)
-    {
-        Vector3 avoidanceVector = Vector3.zero;
-        int activeJointCount = 0;
-        float avoidanceRadius = 0.3f; // Radius around joints to avoid
-        needsAvoidance = false;
-        
-        // Check for joints to avoid from UDPCOMM
-        if (udpCommComponent != null)
-        {
-            GameObject[] joints = new GameObject[]
-            {
-                udpCommComponent.joint2, // Skip joint1 as it's the base
-                udpCommComponent.joint3,
-                udpCommComponent.joint4,
-                udpCommComponent.joint5,
-                udpCommComponent.joint6
-            };
-            
-            foreach (GameObject joint in joints)
-            {
-                if (joint != null)
-                {
-                    float distance = Vector3.Distance(originalTarget, joint.transform.position);
-                    if (distance < avoidanceRadius)
-                    {
-                        // Calculate avoidance vector (away from joint)
-                        Vector3 awayDir = (originalTarget - joint.transform.position).normalized;
-                        float avoidanceStrength = 1.0f - (distance / avoidanceRadius); // Stronger when closer
-                        avoidanceVector += awayDir * avoidanceStrength;
-                        activeJointCount++;
-                        needsAvoidance = true;
-                    }
-                }
-            }
-        }
-        
-        // Check for joints to avoid from NativeAvatar
-        if (nativeAvatar != null && nativeAvatar.CreatedJoint != null)
-        {
-            for (int i = 0; i < nativeAvatar.CreatedJoint.Length; i++)
-            {
-                GameObject joint = nativeAvatar.CreatedJoint[i];
-                if (joint != null && joint.activeSelf)
-                {
-                    // Skip base joints (like Waist or Torso)
-                    if (i < nativeAvatar.typeJoint.Length &&
-                        (nativeAvatar.typeJoint[i] == nuitrack.JointType.Waist ||
-                         nativeAvatar.typeJoint[i] == nuitrack.JointType.Torso))
-                    {
-                        continue;
-                    }
-                    
-                    float distance = Vector3.Distance(originalTarget, joint.transform.position);
-                    if (distance < avoidanceRadius)
-                    {
-                        // Calculate avoidance vector (away from joint)
-                        Vector3 awayDir = (originalTarget - joint.transform.position).normalized;
-                        float avoidanceStrength = 1.0f - (distance / avoidanceRadius); // Stronger when closer
-                        avoidanceVector += awayDir * avoidanceStrength;
-                        activeJointCount++;
-                        needsAvoidance = true;
-                    }
-                }
-            }
-        }
-        
-        // Apply avoidance and gravitation only if joints need to be avoided
-        if (needsAvoidance)
-        {
-            // Normalize and scale the avoidance vector
-            if (activeJointCount > 0)
-            {
-                avoidanceVector = avoidanceVector.normalized * Mathf.Min(avoidanceVector.magnitude, avoidanceRadius);
-            }
-            
-            // Calculate direction towards base
-            Vector3 baseDirection = (basePosition - originalTarget).normalized;
-            
-            // Blend between avoidance and base gravitation
-            // The closer we are to a joint, the more we gravitate towards the base
-            float gravitationStrength = Mathf.Min(1.0f, avoidanceVector.magnitude / avoidanceRadius) * 0.5f;
-            
-            // Return a position that both avoids joints and gravitates towards the base
-            return originalTarget + avoidanceVector + (baseDirection * gravitationStrength);
-        }
-        
-        // If no avoidance needed, return the original target
-        return originalTarget;
+        // Ensure exact position at the end
+        targetObject.transform.position = targetPosition;
     }
 
     /// <summary>
@@ -751,34 +590,4 @@ public class TaskProgrammer : MonoBehaviour
         }
     }
 
-#if UNITY_EDITOR // Only compile Gizmo code in the editor
-    /// <summary>
-    /// Draws a wireframe box in the Scene view to visualize the movement boundaries
-    /// when the GameObject is selected.
-    /// </summary>
-    private void OnDrawGizmosSelected()
-    {
-        // Ensure min is actually less than max for sensible drawing
-        // This handles cases where user might swap min/max values in inspector
-        Vector3 actualMin = Vector3.Min(boundaryMin, boundaryMax);
-        Vector3 actualMax = Vector3.Max(boundaryMin, boundaryMax);
-
-        Vector3 center = (actualMin + actualMax) / 2f;
-        Vector3 size = actualMax - actualMin;
-
-        // Prevent drawing a zero-size box which causes errors/warnings
-        if (size.x > 0.001f && size.y > 0.001f && size.z > 0.001f)
-        {
-            Gizmos.color = new Color(1f, 0.92f, 0.016f, 0.5f); // Yellow, semi-transparent
-            Gizmos.DrawWireCube(center, size);
-        }
-        else
-        {
-            // Optionally draw a small indicator at the origin if size is invalid
-            Gizmos.color = Color.red;
-            Gizmos.DrawSphere(transform.position, 0.1f); // Indicate issue at object origin
-            Debug.LogWarning("TaskProgrammer boundary size is zero or negative on one or more axes. Gizmo cannot be drawn correctly.", this);
-        }
-    }
-#endif // UNITY_EDITOR
 }
