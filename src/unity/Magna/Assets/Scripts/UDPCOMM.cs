@@ -52,9 +52,6 @@ public class UDPCOMM : MonoBehaviour
     public GameObject joint5;
     public GameObject joint6;
 
-    /* Current state of EGM communication (disconnected, connected or running) */
-    string egmState = "Undefined";
-
     /* Flag to track if we've logged the initial position */
     private bool initialPositionLogged = false;
 
@@ -63,10 +60,6 @@ public class UDPCOMM : MonoBehaviour
 
     // Public properties to expose connection status
     public bool IsConnectionEstablished => isConnectionEstablished;
-    public string EgmState => egmState;
-
-    // Property to check if EGM is in RUNNING state
-    public bool IsEgmRunning => egmState == "RUNNING";
 
     /* (Unity) Start is called before the first frame update */
     void Start()
