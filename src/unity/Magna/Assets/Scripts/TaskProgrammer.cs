@@ -95,8 +95,12 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private bool repeatSequence = false;
 
     [Header("Movement Speed")]
-    [SerializeField] private float movementSpeed = 2.0f;
-    
+    [SerializeField] private float movementSpeed = 2.0f; // Base speed, might be adjusted by forces
+
+    [Header("Obstacle Avoidance")]
+    private float minDistanceToObstacle = 0.3f; // Minimum distance to maintain from obstacles
+    private float repulsionStrength = 5.0f;     // How strongly to push away from obstacles
+    private float attractionStrength = 1.0f;    // How strongly to pull towards the target
 
     [Header("Save Settings")]
     [SerializeField] private bool autoSave = true;
@@ -105,7 +109,7 @@ public class TaskProgrammer : MonoBehaviour
     private float saveTimer = 0f;
 
     [Header("Connection Settings")]
-    [SerializeField] private float connectionMaxWaitTime = 60f; // Maximum time to wait for connection in seconds
+    private const float connectionMaxWaitTime = 60f; // Maximum time to wait for connection in seconds (fixed)
     [SerializeField]
     [Tooltip("Delay in seconds after connection is established before starting task execution")]
     private float startDelayAfterConnection = 2.0f; // Default 2-second delay after connection
@@ -407,27 +411,88 @@ public class TaskProgrammer : MonoBehaviour
             yield break; // Exit if already at the target
         }
 
-        // Move towards target position over time
-        while (Vector3.Distance(targetObject.transform.position, targetPosition) > 0.001f)
+        // Move towards target position using force-based movement with obstacle avoidance
+        while (Vector3.Distance(targetObject.transform.position, targetPosition) > 0.1f) // Use a slightly larger threshold for force-based movement
         {
-            // Calculate next position using constant speed
-            Vector3 nextPosition = Vector3.MoveTowards(
-                targetObject.transform.position,
-                targetPosition,
-                movementSpeed * Time.deltaTime
-            );
+            // 1. Calculate Attraction Force towards the target
+            Vector3 attractionDirection = (targetPosition - targetObject.transform.position).normalized;
+            Vector3 attractionForce = attractionDirection * attractionStrength;
 
+            // 2. Calculate Repulsion Force from obstacles (active Nuitrack joints)
+            Vector3 repulsionForce = CalculateRepulsionForce();
 
-            // Apply the position
-            targetObject.transform.position = nextPosition;
+            // 3. Combine Forces
+            // Simple addition for now, might need more sophisticated blending later
+            Vector3 totalForce = attractionForce + repulsionForce;
 
-            yield return null;
+            // 4. Apply Movement
+            // Normalize the force to get direction, then apply speed.
+            // Or, use the force magnitude directly if strengths are tuned.
+            // Let's try using the force magnitude directly, scaled by speed and time.
+            Vector3 velocity = totalForce; // Simplified velocity calculation
+            targetObject.transform.position += velocity * movementSpeed * Time.deltaTime;
+
+            // Optional: Clamp velocity or add damping if movement becomes unstable
+
+            yield return null; // Wait for the next frame
         }
 
-        // Ensure exact position at the end
-        targetObject.transform.position = targetPosition;
+        // Optional: Snap to the exact target position at the end if needed,
+        // but force-based movement might naturally settle close enough.
+        // targetObject.transform.position = targetPosition;
     }
 
+    /// <summary>
+    /// Calculates the combined repulsion force from nearby active obstacles (Nuitrack joints).
+    /// </summary>
+    private Vector3 CalculateRepulsionForce()
+    {
+        Vector3 totalRepulsion = Vector3.zero;
+
+        if (nativeAvatar == null || nativeAvatar.CreatedJoint == null)
+        {
+            return totalRepulsion; // No avatar or joints to avoid
+        }
+
+        foreach (GameObject jointObject in nativeAvatar.CreatedJoint)
+        {
+            // Only consider active joints as obstacles
+            if (jointObject != null && jointObject.activeSelf)
+            {
+                Transform obstacle = jointObject.transform;
+                float distance = Vector3.Distance(targetObject.transform.position, obstacle.position);
+
+                // Define an influence range (e.g., twice the minimum distance)
+                float influenceRange = minDistanceToObstacle * 2.0f;
+
+                // Only apply repulsion if within the influence range and not exactly at the same spot
+                if (distance < influenceRange && distance > 0.001f)
+                {
+                    // Calculate repulsion vector (away from obstacle)
+                    Vector3 repulsionDirection = (targetObject.transform.position - obstacle.position).normalized;
+
+                    // Repulsion strength increases quadratically as we get closer (stronger push near obstacle)
+                    // Inverse square falloff is common, but let's try linear falloff first for simplicity
+                    // float repulsionMagnitude = repulsionStrength * (1.0f - (distance / influenceRange));
+                    // Let's try inverse relationship: stronger when closer
+                    float repulsionMagnitude = repulsionStrength * (influenceRange / distance - 1.0f); // Gets stronger as distance approaches 0
+                    repulsionMagnitude = Mathf.Clamp(repulsionMagnitude, 0, repulsionStrength * 5); // Clamp max force
+
+
+                    // Add to total repulsion
+                    totalRepulsion += repulsionDirection * repulsionMagnitude;
+                }
+            }
+        }
+
+        // Optional: Clamp the total repulsion force magnitude if needed
+        // if (totalRepulsion.magnitude > maxRepulsionForce)
+        // {
+        //     totalRepulsion = totalRepulsion.normalized * maxRepulsionForce;
+        // }
+
+        return totalRepulsion;
+    }
     /// <summary>
     /// Adds a new Movement task to the sequence at runtime
     /// </summary>
@@ -590,4 +655,32 @@ public class TaskProgrammer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Draws Gizmos in the Scene view for debugging obstacle avoidance ranges.
+    /// </summary>
+    private void OnDrawGizmos()
+    {
+        // --- Visualize Target Object's Minimum Distance ---
+        if (targetObject != null)
+        {
+            Gizmos.color = Color.yellow; // Color for the target's safe zone
+            Gizmos.DrawWireSphere(targetObject.transform.position, minDistanceToObstacle);
+        }
+
+        // --- Visualize Obstacles' Influence Range ---
+        if (nativeAvatar != null && nativeAvatar.CreatedJoint != null)
+        {
+            Gizmos.color = Color.red; // Color for the obstacles' influence zone
+            float influenceRange = minDistanceToObstacle * 2.0f;
+
+            foreach (GameObject jointObject in nativeAvatar.CreatedJoint)
+            {
+                // Only draw for active joints
+                if (jointObject != null && jointObject.activeSelf)
+                {
+                    Gizmos.DrawWireSphere(jointObject.transform.position, influenceRange);
+                }
+            }
+        }
+    }
 }
