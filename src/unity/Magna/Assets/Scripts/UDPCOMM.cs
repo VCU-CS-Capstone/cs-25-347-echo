@@ -172,7 +172,6 @@ public class UDPCOMM : MonoBehaviour
             rx = message.FeedBack.Cartesian.Euler.X;
             ry = message.FeedBack.Cartesian.Euler.Y;
             rz = message.FeedBack.Cartesian.Euler.Z;
-            egmState = message.MciState.State.ToString();
             // Calculate the new position based on received robot data
             Vector3 newPosition = new Vector3((float)y / 1000, (float)z / 1000, (float)-x / 1000);
 
@@ -202,7 +201,6 @@ public class UDPCOMM : MonoBehaviour
                 initialPositionLogged = true;
                 Debug.Log("Initial robot position - X:" + x + ", Y:" + y + ", Z:" + z +
                           ", RX:" + rx + ", RY:" + ry + ", RZ:" + rz);
-                Debug.Log("Initial EGM state: " + egmState);
             }
         }
         else
