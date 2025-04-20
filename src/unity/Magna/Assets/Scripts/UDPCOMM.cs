@@ -33,7 +33,6 @@ public class UDPCOMM : MonoBehaviour
     /* Variable used to count the number of messages sent */
     private uint sequenceNumber = 0;
     public GameObject target; // The object whose position is sent to the robot
-    public GameObject follower; // The object whose position is set by the robot's initial message
     /* Robot cartesian position and rotation values */
     double x, y, z, rx, ry, rz;
     double xc, yc, zc;
@@ -71,19 +70,19 @@ public class UDPCOMM : MonoBehaviour
     /* (Unity) FixedUpdate is called once per fixed frame */
     void FixedUpdate()
     {
-        // Read position and rotation from the follower GameObject
-        if (follower != null)
+        // Read position and rotation from the target GameObject
+        if (target != null)
         {
-            cz = -follower.transform.position.z;
-            cx = follower.transform.position.x;
-            cy = follower.transform.position.y;
+            cz = -target.transform.position.z;
+            cx = target.transform.position.x;
+            cy = target.transform.position.y;
 
-            // Send follower's pose data to the robot
-            CubeMove(cx, cy, cz, -follower.transform.eulerAngles.z - 180, follower.transform.eulerAngles.x, -follower.transform.eulerAngles.y - 180);
+            // Send target's pose data to the robot
+            CubeMove(cx, cy, cz, -target.transform.eulerAngles.z - 180, target.transform.eulerAngles.x, -target.transform.eulerAngles.y - 180);
         }
         else
         {
-            Debug.LogWarning("Follower GameObject not assigned in UDPCOMM script. Cannot send position to robot.");
+            Debug.LogWarning("Target GameObject not assigned in UDPCOMM script. Cannot send position to robot.");
         }
     }
 
@@ -185,15 +184,6 @@ public class UDPCOMM : MonoBehaviour
                 Debug.LogWarning("Target GameObject not assigned in UDPCOMM script.");
             }
 
-            // Set the follower's position
-            if (follower != null)
-            {
-                follower.transform.position = newPosition;
-            }
-            else
-            {
-                Debug.LogWarning("Follower GameObject not assigned in UDPCOMM script.");
-            }
 
             // Log the initial position if not already logged
             if (!initialPositionLogged)

@@ -3,48 +3,41 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-// Enum to define the type of task
 public enum TaskType
 {
     Movement,
     Gripper
 }
 
-// Enum to define the specific gripper action
 public enum GripperActionType
 {
     Open,
     Close
 }
 
-// Base class for all tasks
 [System.Serializable]
 public abstract class BaseTask
 {
-    public TaskType taskType; // To identify the task type
+    public TaskType taskType;
 
     [Header("Timing")]
     [Tooltip("Delay in seconds after completing this task")]
     public float delayAfterAction = 0.5f;
 
-    // Constructor to set the task type
     protected BaseTask(TaskType type)
     {
         taskType = type;
     }
 }
 
-// Derived class for movement tasks
 [System.Serializable]
 public class MovementTask : BaseTask
 {
     [Header("Movement")]
     public Vector3 targetPosition;
 
-    // Default constructor needed for serialization
     public MovementTask() : base(TaskType.Movement) { }
 
-    // Constructor for creating movement tasks programmatically
     public MovementTask(Vector3 position, float delay = 0.5f) : base(TaskType.Movement)
     {
         targetPosition = position;
@@ -52,17 +45,14 @@ public class MovementTask : BaseTask
     }
 }
 
-// Derived class for gripper tasks
 [System.Serializable]
 public class GripperTask : BaseTask
 {
     [Header("Gripper Action")]
     public GripperActionType actionType;
 
-    // Default constructor needed for serialization
     public GripperTask() : base(TaskType.Gripper) { }
 
-    // Constructor for creating gripper tasks programmatically
     public GripperTask(GripperActionType action, float delay = 0.5f) : base(TaskType.Gripper)
     {
         actionType = action;
@@ -102,7 +92,6 @@ public class TaskProgrammer : MonoBehaviour
     private float repulsionStrength = 10.0f;     // How strongly to push away from obstacles
     private float attractionStrength = 1.0f;    // How strongly to pull towards the target
 
-    // Save Settings removed - Handled by ScriptableObject persistence
 
     [Header("Connection Settings")]
     private const float connectionMaxWaitTime = 60f; // Maximum time to wait for connection in seconds (fixed)
@@ -111,18 +100,15 @@ public class TaskProgrammer : MonoBehaviour
     private float startDelayAfterConnection = 2.0f; // Default 2-second delay after connection
 
     private bool isExecuting = false;
-    private bool isUdpConnected = false; // Flag to track if UDP connection is established
-    // SaveFilePath removed - Handled by ScriptableObject persistence
+    private bool isUdpConnected = false;
     
     // Public accessors
     public GameObject GetTargetObject() => targetObject;
-    public TaskSequenceSO GetActiveSequence() => activeTaskSequence; // Getter for Editor
+    public TaskSequenceSO GetActiveSequence() => activeTaskSequence;
     
-    // Static instance for easy access from other scripts
     public static TaskProgrammer Instance { get; private set; }
     private void Awake()
     {
-        // Set up singleton instance
         if (Instance == null)
         {
             Instance = this;
@@ -137,7 +123,6 @@ public class TaskProgrammer : MonoBehaviour
     {
         Debug.Log("TaskProgrammer Start method called");
 
-        // Validate references
         if (targetObject == null)
         {
             Debug.LogError("Target object reference is missing!");
@@ -161,7 +146,6 @@ public class TaskProgrammer : MonoBehaviour
             nativeAvatar = FindObjectOfType<NuitrackSDK.Tutorials.FirstProject.NativeAvatar>();
         }
 
-        // Find UDPCOMM component if not assigned
         if (udpCommComponent == null)
         {
             Debug.Log("UDPCOMM reference is missing. Attempting to find it in the scene.");
@@ -173,9 +157,7 @@ public class TaskProgrammer : MonoBehaviour
             }
         }
 
-        // LoadTasks() call removed - Handled by ScriptableObject assignment
 
-        // Start a coroutine to wait for UDPCOMM connection before executing tasks
         StartCoroutine(WaitForUdpConnection());
     }
 
@@ -186,10 +168,8 @@ public class TaskProgrammer : MonoBehaviour
     {
         Debug.Log("Waiting for UDPCOMM to establish connection...");
 
-        // Initial delay to give UDPCOMM time to start
         yield return new WaitForSeconds(1.0f);
 
-        // Wait until UDPCOMM component is available
         float componentWaitTime = 0f;
         float componentMaxWaitTime = 10f; // Max time to wait for component to be found
 
@@ -206,7 +186,6 @@ public class TaskProgrammer : MonoBehaviour
             yield break; // Exit the coroutine
         }
 
-        // Wait for the connection to be established
         float connectionWaitTime = 0f;
         bool connectionLoggedOnce = false;
 
@@ -222,7 +201,6 @@ public class TaskProgrammer : MonoBehaviour
                 break;
             }
 
-            // Log status periodically (only once every 5 seconds to avoid log spam)
             if (!connectionLoggedOnce || Mathf.FloorToInt(connectionWaitTime) % 5 == 0)
             {
                 connectionLoggedOnce = true;
@@ -243,7 +221,6 @@ public class TaskProgrammer : MonoBehaviour
             yield break; // Exit without executing tasks
         }
 
-        // Add delay after connection is established before starting task execution
         if (startDelayAfterConnection > 0)
         {
             Debug.Log($"Connection established. Waiting for {startDelayAfterConnection} seconds before starting task execution...");
@@ -255,7 +232,6 @@ public class TaskProgrammer : MonoBehaviour
             Debug.Log("Connection established. Ready to execute tasks immediately (no delay configured).");
         }
 
-        // Execute tasks if configured to do so on start and a sequence is assigned
         if (executeOnStart && activeTaskSequence != null && activeTaskSequence.tasks.Count > 0)
         {
             Debug.Log($"Auto-executing tasks from sequence '{activeTaskSequence.name}' as configured...");
@@ -268,35 +244,29 @@ public class TaskProgrammer : MonoBehaviour
     /// </summary>
     public void ExecuteTasks()
     {
-        // --- ADD NULL CHECK ---
         if (activeTaskSequence == null)
         {
             Debug.LogWarning("Cannot execute: No active task sequence assigned!");
             return;
         }
-        // --- MODIFY LIST CHECK ---
         if (activeTaskSequence.tasks.Count == 0)
         {
             Debug.LogWarning($"No tasks in the active sequence '{activeTaskSequence.name}' to execute!");
             return;
         }
 
-        // Simplified connection checking
         if (udpCommComponent == null || !udpCommComponent.IsConnectionEstablished)
         {
             Debug.LogWarning("Cannot execute tasks: UDPCOMM connection not established.");
             Debug.LogWarning($"Connection status: {(udpCommComponent == null ? "UDPCOMM not found" : $"Connection={udpCommComponent.IsConnectionEstablished}")}");
 
-            // Set executeOnStart to true so that tasks will execute once the connection is established
             executeOnStart = true;
 
-            // Start the WaitForUdpConnection coroutine if it's not already running
             if (udpCommComponent == null)
             {
                 udpCommComponent = FindObjectOfType<UDPCOMM>();
             }
 
-            // Start the coroutine to wait for the connection
             StartCoroutine(WaitForUdpConnection());
             return;
         }
@@ -304,7 +274,6 @@ public class TaskProgrammer : MonoBehaviour
         if (!isExecuting)
         {
             isExecuting = true;
-            // --- Pass the sequence to the coroutine ---
             StartCoroutine(ExecuteTaskSequenceCoroutine(activeTaskSequence));
         }
         else
@@ -326,21 +295,18 @@ public class TaskProgrammer : MonoBehaviour
     /// <summary>
     /// Coroutine that executes the task sequence from the provided ScriptableObject
     /// </summary>
-    // --- RENAME and ADD PARAMETER ---
     private IEnumerator ExecuteTaskSequenceCoroutine(TaskSequenceSO sequenceToExecute)
     {
         Debug.Log($"Starting execution of sequence: {sequenceToExecute.name}");
-        List<BaseTask> tasksToRun = sequenceToExecute.tasks; // Get list from SO
+        List<BaseTask> tasksToRun = sequenceToExecute.tasks;
 
         do
         {
-            // --- Use tasksToRun ---
             for (int i = 0; i < tasksToRun.Count; i++)
             {
                 BaseTask task = tasksToRun[i];
                 Debug.Log($"Executing task {i + 1}/{tasksToRun.Count} (Type: {task.taskType}) from sequence {sequenceToExecute.name}");
 
-                // Execute action based on task type
                 switch (task.taskType)
                 {
                     case TaskType.Movement:
@@ -383,7 +349,6 @@ public class TaskProgrammer : MonoBehaviour
                         break;
                 }
 
-                // Wait for specified delay after the action
                 if (task.delayAfterAction > 0)
                 {
                     Debug.Log($"Waiting for {task.delayAfterAction} seconds");
@@ -411,38 +376,30 @@ public class TaskProgrammer : MonoBehaviour
         Vector3 startPosition = targetObject.transform.position;
         float totalDistance = Vector3.Distance(startPosition, targetPosition);
 
-        // Handle very short movements to avoid division by zero or weird behavior
         if (totalDistance < 0.001f)
         {
             targetObject.transform.position = targetPosition;
-            yield break; // Exit if already at the target
+            yield break;
         }
 
-        // Move towards target position using force-based movement with obstacle avoidance
-        while (Vector3.Distance(targetObject.transform.position, targetPosition) > 0.001f) // Use a slightly larger threshold for force-based movement
+        while (Vector3.Distance(targetObject.transform.position, targetPosition) > 0.01f)
         {
-            // 1. Calculate Attraction Force towards the target
             Vector3 attractionDirection = (targetPosition - targetObject.transform.position).normalized;
             Vector3 attractionForce = attractionDirection * attractionStrength;
 
-            // 2. Calculate Repulsion Force from obstacles (active Nuitrack joints)
             Vector3 repulsionForce = CalculateRepulsionForce();
 
             // 3. Combine Forces
-            // Simple addition for now, might need more sophisticated blending later
             Vector3 totalForce = attractionForce + repulsionForce;
 
             // 4. Apply Movement
-            // Normalize the force to get direction, then apply speed.
-            // Or, use the force magnitude directly if strengths are tuned.
-            // Let's try using the force magnitude directly, scaled by speed and time.
-            Vector3 velocity = totalForce; // Simplified velocity calculation
+            Vector3 velocity = totalForce;
             targetObject.transform.position += velocity * movementSpeed * Time.deltaTime;
-
-            // Optional: Clamp velocity or add damping if movement becomes unstable
 
             yield return null; // Wait for the next frame
         }
+
+        targetObject.transform.position = targetPosition;
     }
 
     /// <summary>
@@ -454,24 +411,20 @@ public class TaskProgrammer : MonoBehaviour
 
         if (nativeAvatar == null || nativeAvatar.CreatedJoint == null)
         {
-            return totalRepulsion; // No avatar or joints to avoid
+            return totalRepulsion;
         }
 
         foreach (GameObject jointObject in nativeAvatar.CreatedJoint)
         {
-            // Only consider active joints as obstacles
             if (jointObject != null && jointObject.activeSelf)
             {
                 Transform obstacle = jointObject.transform;
                 float distance = Vector3.Distance(targetObject.transform.position, obstacle.position);
 
-                // Define an influence range (e.g., twice the minimum distance)
                 float influenceRange = minDistanceToObstacle * 2.0f;
 
-                // Only apply repulsion if within the influence range and not exactly at the same spot
                 if (distance < influenceRange && distance > 0.001f)
                 {
-                    // Calculate repulsion vector (away from obstacle)
                     Vector3 repulsionDirection = (targetObject.transform.position - obstacle.position).normalized;
 
                     // Repulsion strength increases quadratically as we get closer (stronger push near obstacle)
@@ -488,11 +441,6 @@ public class TaskProgrammer : MonoBehaviour
             }
         }
 
-        // Optional: Clamp the total repulsion force magnitude if needed
-        // if (totalRepulsion.magnitude > maxRepulsionForce)
-        // {
-        //     totalRepulsion = totalRepulsion.normalized * maxRepulsionForce;
-        // }
 
         return totalRepulsion;
     }
@@ -501,16 +449,13 @@ public class TaskProgrammer : MonoBehaviour
     /// </summary>
     public void AddMovementTask(Vector3 position, float delay = 0.5f)
     {
-        // --- ADD NULL CHECK ---
         if (activeTaskSequence == null)
         {
             Debug.LogError("Cannot add task: No active task sequence assigned.");
             return;
         }
-        // --- Add to SO's list ---
         activeTaskSequence.tasks.Add(new MovementTask(position, delay));
 
-        // --- Mark SO as dirty (important for saving changes made at runtime) ---
         #if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
         #endif
@@ -522,16 +467,13 @@ public class TaskProgrammer : MonoBehaviour
     /// </summary>
     public void AddGripperTask(GripperActionType action, float delay = 0.5f)
     {
-        // --- ADD NULL CHECK ---
         if (activeTaskSequence == null)
         {
             Debug.LogError("Cannot add task: No active task sequence assigned.");
             return;
         }
-        // --- Add to SO's list ---
         activeTaskSequence.tasks.Add(new GripperTask(action, delay));
 
-        // --- Mark SO as dirty ---
         #if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
         #endif
@@ -541,7 +483,6 @@ public class TaskProgrammer : MonoBehaviour
     /// <summary>
     /// Update method to continuously save tasks at regular intervals
     /// </summary>
-    // Update() method removed - Auto-save logic is no longer needed
     /// <summary>
     /// Clears all tasks from the sequence
     /// </summary>
@@ -609,7 +550,6 @@ public class TaskProgrammer : MonoBehaviour
             Debug.LogError("Cannot save position: Target object is missing!");
             return;
         }
-        // --- ADD NULL CHECK ---
         if (activeTaskSequence == null)
         {
             Debug.LogError("Cannot save position as task: No active task sequence assigned.");
@@ -617,31 +557,53 @@ public class TaskProgrammer : MonoBehaviour
         }
 
         Vector3 currentPosition = targetObject.transform.position;
-        // --- Add directly to SO's list ---
         activeTaskSequence.tasks.Add(new MovementTask(currentPosition));
 
-        // --- Mark SO as dirty ---
         #if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
         #endif
         Debug.Log($"Saved current position {currentPosition} as a Movement Task in sequence {activeTaskSequence.name}");
     }
 
-    // SaveTasks() method removed - Handled by ScriptableObject persistence
-    // LoadTasks() method removed - Handled by ScriptableObject assignment
+    /// <summary>
+    /// Removes the last task added to the active sequence.
+    /// </summary>
+    public void RemoveLastTask()
+    {
+        if (activeTaskSequence == null)
+        {
+            Debug.LogError("Cannot remove task: No active task sequence assigned.");
+            return;
+        }
+
+        if (activeTaskSequence.tasks.Count > 0)
+        {
+            int lastIndex = activeTaskSequence.tasks.Count - 1;
+            BaseTask removedTask = activeTaskSequence.tasks[lastIndex];
+            activeTaskSequence.tasks.RemoveAt(lastIndex);
+
+            #if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
+            #endif
+            Debug.Log($"Removed last task (Type: {removedTask.taskType}) from sequence {activeTaskSequence.name}. Remaining tasks: {activeTaskSequence.tasks.Count}");
+        }
+        else
+        {
+            Debug.LogWarning($"Cannot remove task: Sequence '{activeTaskSequence.name}' is already empty.");
+        }
+    }
+ 
     /// <summary>
     /// Draws Gizmos in the Scene view for debugging obstacle avoidance ranges.
     /// </summary>
     private void OnDrawGizmos()
     {
-        // --- Visualize Target Object's Minimum Distance ---
         if (targetObject != null)
         {
             Gizmos.color = Color.yellow; // Color for the target's safe zone
             Gizmos.DrawWireSphere(targetObject.transform.position, minDistanceToObstacle);
         }
 
-        // --- Visualize Obstacles' Influence Range ---
         if (nativeAvatar != null && nativeAvatar.CreatedJoint != null)
         {
             Gizmos.color = Color.red; // Color for the obstacles' influence zone
@@ -649,7 +611,6 @@ public class TaskProgrammer : MonoBehaviour
 
             foreach (GameObject jointObject in nativeAvatar.CreatedJoint)
             {
-                // Only draw for active joints
                 if (jointObject != null && jointObject.activeSelf)
                 {
                     Gizmos.DrawWireSphere(jointObject.transform.position, influenceRange);
