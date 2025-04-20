@@ -14,104 +14,55 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   description: A sequence of tasks.
   tasks:
-  - rid: 2932953188262740001
-  - rid: 2932953188262740002
-  - rid: 2932953188262740003
-  - rid: 2932953188262740004
-  - rid: 2932953188262740005
-  - rid: 2932953188262740006
-  - rid: 2932953188262740007
-  - rid: 2932953188262740008
-  - rid: 2932953188262740009
-  - rid: 2932953188262740010
-  - rid: 2932953188262740011
-  - rid: 2932953188262740012
-  - rid: 2932953188262740013
-  - rid: 2932953188262740014
+  - rid: 2932953238370254848
+  - rid: 2932953238370254849
+  - rid: 2932953238370254850
+  - rid: 2932953238370254851
+  - rid: 2932953238370254852
+  - rid: 2932953238370254853
+  - rid: 2932953238370254854
   references:
     version: 2
     RefIds:
-    - rid: 2932953188262740001
+    - rid: 2932953238370254848
       type: {class: MovementTask, ns: , asm: Assembly-CSharp}
       data:
         taskType: 0
         delayAfterAction: 0.5
-        targetPosition: {x: -0.38929427, y: 0.35, z: -0.5416585}
-    - rid: 2932953188262740002
+        targetPosition: {x: -0.3865589, y: 0.35, z: -0.5418246}
+    - rid: 2932953238370254849
       type: {class: GripperTask, ns: , asm: Assembly-CSharp}
       data:
         taskType: 1
         delayAfterAction: 0.5
         actionType: 1
-    - rid: 2932953188262740003
+    - rid: 2932953238370254850
       type: {class: MovementTask, ns: , asm: Assembly-CSharp}
       data:
         taskType: 0
         delayAfterAction: 0.5
-        targetPosition: {x: -0.38929427, y: 0.49006343, z: -0.5416585}
-    - rid: 2932953188262740004
+        targetPosition: {x: -0.22234826, y: 0.46606642, z: -0.5418246}
+    - rid: 2932953238370254851
       type: {class: MovementTask, ns: , asm: Assembly-CSharp}
       data:
         taskType: 0
         delayAfterAction: 0.5
-        targetPosition: {x: 0.0017145132, y: 0.49006343, z: -0.5416585}
-    - rid: 2932953188262740005
-      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
-      data:
-        taskType: 0
-        delayAfterAction: 0.5
-        targetPosition: {x: 0.0017145451, y: 0.35, z: -0.5416585}
-    - rid: 2932953188262740006
+        targetPosition: {x: -0.22234826, y: 0.35, z: -0.5418246}
+    - rid: 2932953238370254852
       type: {class: GripperTask, ns: , asm: Assembly-CSharp}
       data:
         taskType: 1
         delayAfterAction: 0.5
         actionType: 0
-    - rid: 2932953188262740007
+    - rid: 2932953238370254853
       type: {class: MovementTask, ns: , asm: Assembly-CSharp}
       data:
         taskType: 0
         delayAfterAction: 0.5
-        targetPosition: {x: 0.0017145368, y: 0.49148113, z: -0.5416585}
-    - rid: 2932953188262740008
-      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
-      data:
-        taskType: 0
-        delayAfterAction: 0.5
-        targetPosition: {x: 0.39106542, y: 0.49148113, z: -0.5416585}
-    - rid: 2932953188262740009
-      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
-      data:
-        taskType: 0
-        delayAfterAction: 0.5
-        targetPosition: {x: 0.39106542, y: 0.35, z: -0.5416585}
-    - rid: 2932953188262740010
+        targetPosition: {x: 0.40053612, y: 0.35, z: -0.54868996}
+    - rid: 2932953238370254854
       type: {class: GripperTask, ns: , asm: Assembly-CSharp}
       data:
         taskType: 1
         delayAfterAction: 0.5
         actionType: 1
-    - rid: 2932953188262740011
-      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
-      data:
-        taskType: 0
-        delayAfterAction: 0.5
-        targetPosition: {x: 0.37675524, y: 0.66195035, z: -0.52166945}
-    - rid: 2932953188262740012
-      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
-      data:
-        taskType: 0
-        delayAfterAction: 0.5
-        targetPosition: {x: -0.0012885516, y: 0.66195035, z: -0.52166945}
-    - rid: 2932953188262740013
-      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
-      data:
-        taskType: 0
-        delayAfterAction: 0.5
-        targetPosition: {x: -0.0012885393, y: 0.43887243, z: -0.53441334}
-    - rid: 2932953188262740014
-      type: {class: GripperTask, ns: , asm: Assembly-CSharp}
-      data:
-        taskType: 1
-        delayAfterAction: 0.5
-        actionType: 0

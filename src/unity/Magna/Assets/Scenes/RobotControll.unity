@@ -372,8 +372,12 @@ MonoBehaviour:
   udpCommComponent: {fileID: 4706292499343406789}
   activeTaskSequence: {fileID: 11400000, guid: 610e45b7a8bc00a4fb50fd2ba6444075, type: 2}
   executeOnStart: 1
-  repeatSequence: 1
+  repeatSequence: 0
   movementSpeed: 0.5
+  minDistanceToObstacle: 0.3
+  repulsionStrength: 10
+  attractionStrength: 1
+  archHeight: 1
   startDelayAfterConnection: 0.5
 --- !u!4 &522346867
 Transform:
@@ -1163,7 +1167,6 @@ MonoBehaviour:
   enableNoise: 1
   noiseAmount: 1
   target: {fileID: 3797525683882037927}
-  follower: {fileID: 0}
   joint1: {fileID: 5858565089025539239}
   joint2: {fileID: 5858565089901643591}
   joint3: {fileID: 5858565090284660062}
@@ -1226,6 +1229,18 @@ PrefabInstance:
       value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 4755319587785577618, guid: ccd1b8eb282da5c4985ee430d01f495d, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 4755319587785577618, guid: ccd1b8eb282da5c4985ee430d01f495d, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 4755319587785577618, guid: ccd1b8eb282da5c4985ee430d01f495d, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 4755319587785577618, guid: ccd1b8eb282da5c4985ee430d01f495d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -1264,6 +1279,10 @@ PrefabInstance:
     - target: {fileID: 4755319587785577618, guid: ccd1b8eb282da5c4985ee430d01f495d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4755319587785577618, guid: ccd1b8eb282da5c4985ee430d01f495d, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ccd1b8eb282da5c4985ee430d01f495d, type: 3}

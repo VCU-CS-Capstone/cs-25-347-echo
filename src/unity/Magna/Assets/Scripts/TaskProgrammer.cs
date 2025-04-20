@@ -94,9 +94,6 @@ public class TaskProgrammer : MonoBehaviour
 
     private const float connectionMaxWaitTime = 60f; // Maximum time to wait for connection in seconds (fixed)
 
-    [Header("Movement Settings")]
-    [SerializeField] private float archHeight = 1.0f; // Controls the height of the parabolic arch
-
     [Header("Connection Settings")]
     [SerializeField]
     [Tooltip("Delay in seconds after connection is established before starting task execution")]
