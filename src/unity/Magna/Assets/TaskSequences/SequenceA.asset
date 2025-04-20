@@ -1,0 +1,117 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1fd4ff1b76d88f45b586566db872803, type: 3}
+  m_Name: SequenceA
+  m_EditorClassIdentifier: 
+  description: A sequence of tasks.
+  tasks:
+  - rid: 2932953188262740001
+  - rid: 2932953188262740002
+  - rid: 2932953188262740003
+  - rid: 2932953188262740004
+  - rid: 2932953188262740005
+  - rid: 2932953188262740006
+  - rid: 2932953188262740007
+  - rid: 2932953188262740008
+  - rid: 2932953188262740009
+  - rid: 2932953188262740010
+  - rid: 2932953188262740011
+  - rid: 2932953188262740012
+  - rid: 2932953188262740013
+  - rid: 2932953188262740014
+  references:
+    version: 2
+    RefIds:
+    - rid: 2932953188262740001
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: -0.38929427, y: 0.35, z: -0.5416585}
+    - rid: 2932953188262740002
+      type: {class: GripperTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 1
+        delayAfterAction: 0.5
+        actionType: 1
+    - rid: 2932953188262740003
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: -0.38929427, y: 0.49006343, z: -0.5416585}
+    - rid: 2932953188262740004
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: 0.0017145132, y: 0.49006343, z: -0.5416585}
+    - rid: 2932953188262740005
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: 0.0017145451, y: 0.35, z: -0.5416585}
+    - rid: 2932953188262740006
+      type: {class: GripperTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 1
+        delayAfterAction: 0.5
+        actionType: 0
+    - rid: 2932953188262740007
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: 0.0017145368, y: 0.49148113, z: -0.5416585}
+    - rid: 2932953188262740008
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: 0.39106542, y: 0.49148113, z: -0.5416585}
+    - rid: 2932953188262740009
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: 0.39106542, y: 0.35, z: -0.5416585}
+    - rid: 2932953188262740010
+      type: {class: GripperTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 1
+        delayAfterAction: 0.5
+        actionType: 1
+    - rid: 2932953188262740011
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: 0.37675524, y: 0.66195035, z: -0.52166945}
+    - rid: 2932953188262740012
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: -0.0012885516, y: 0.66195035, z: -0.52166945}
+    - rid: 2932953188262740013
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: -0.0012885393, y: 0.43887243, z: -0.53441334}
+    - rid: 2932953188262740014
+      type: {class: GripperTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 1
+        delayAfterAction: 0.5
+        actionType: 0
