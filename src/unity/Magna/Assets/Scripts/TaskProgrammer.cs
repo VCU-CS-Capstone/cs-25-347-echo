@@ -88,13 +88,16 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private float movementSpeed = 2.0f; // Base speed, might be adjusted by forces
 
     [Header("Obstacle Avoidance")]
-    private float minDistanceToObstacle = 0.3f; // Minimum distance to maintain from obstacles
-    private float repulsionStrength = 10.0f;     // How strongly to push away from obstacles
-    private float attractionStrength = 1.0f;    // How strongly to pull towards the target
+    [SerializeField] private float minDistanceToObstacle = 0.3f; // Minimum distance to maintain from obstacles
+    [SerializeField] private float repulsionStrength = 10.0f;     // How strongly to push away from obstacles
+    [SerializeField] private float attractionStrength = 1.0f;    // How strongly to pull towards the target
 
+    private const float connectionMaxWaitTime = 60f; // Maximum time to wait for connection in seconds (fixed)
+
+    [Header("Movement Settings")]
+    [SerializeField] private float archHeight = 1.0f; // Controls the height of the parabolic arch
 
     [Header("Connection Settings")]
-    private const float connectionMaxWaitTime = 60f; // Maximum time to wait for connection in seconds (fixed)
     [SerializeField]
     [Tooltip("Delay in seconds after connection is established before starting task execution")]
     private float startDelayAfterConnection = 2.0f; // Default 2-second delay after connection
