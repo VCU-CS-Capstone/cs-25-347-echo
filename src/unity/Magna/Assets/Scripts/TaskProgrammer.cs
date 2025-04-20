@@ -87,8 +87,8 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private UDPCOMM udpCommComponent; // Reference to the UDPCOMM component
 
     [Header("Task Sequence")]
-    [SerializeReference] // Required for polymorphism in Inspector/Serialization
-    [SerializeField] private List<BaseTask> tasks = new List<BaseTask>();
+    [Tooltip("The Task Sequence asset currently assigned to this programmer.")]
+    [SerializeField] private TaskSequenceSO activeTaskSequence;
     
     [Header("Execution Settings")]
     [SerializeField] private bool executeOnStart = false;
@@ -99,14 +99,10 @@ public class TaskProgrammer : MonoBehaviour
 
     [Header("Obstacle Avoidance")]
     private float minDistanceToObstacle = 0.3f; // Minimum distance to maintain from obstacles
-    private float repulsionStrength = 5.0f;     // How strongly to push away from obstacles
+    private float repulsionStrength = 10.0f;     // How strongly to push away from obstacles
     private float attractionStrength = 1.0f;    // How strongly to pull towards the target
 
-    [Header("Save Settings")]
-    [SerializeField] private bool autoSave = true;
-    [SerializeField] private string saveFileName = "task_sequence.json";
-    [SerializeField] private float saveInterval = 0.5f; // How often to save (in seconds)
-    private float saveTimer = 0f;
+    // Save Settings removed - Handled by ScriptableObject persistence
 
     [Header("Connection Settings")]
     private const float connectionMaxWaitTime = 60f; // Maximum time to wait for connection in seconds (fixed)
@@ -116,10 +112,11 @@ public class TaskProgrammer : MonoBehaviour
 
     private bool isExecuting = false;
     private bool isUdpConnected = false; // Flag to track if UDP connection is established
-    private string SaveFilePath => Path.Combine(Application.persistentDataPath, saveFileName);
+    // SaveFilePath removed - Handled by ScriptableObject persistence
     
     // Public accessors
     public GameObject GetTargetObject() => targetObject;
+    public TaskSequenceSO GetActiveSequence() => activeTaskSequence; // Getter for Editor
     
     // Static instance for easy access from other scripts
     public static TaskProgrammer Instance { get; private set; }
@@ -176,8 +173,7 @@ public class TaskProgrammer : MonoBehaviour
             }
         }
 
-        // Load saved tasks
-        LoadTasks();
+        // LoadTasks() call removed - Handled by ScriptableObject assignment
 
         // Start a coroutine to wait for UDPCOMM connection before executing tasks
         StartCoroutine(WaitForUdpConnection());
@@ -259,10 +255,10 @@ public class TaskProgrammer : MonoBehaviour
             Debug.Log("Connection established. Ready to execute tasks immediately (no delay configured).");
         }
 
-        // Execute tasks if configured to do so on start
-        if (executeOnStart && tasks.Count > 0)
+        // Execute tasks if configured to do so on start and a sequence is assigned
+        if (executeOnStart && activeTaskSequence != null && activeTaskSequence.tasks.Count > 0)
         {
-            Debug.Log("Auto-executing tasks as configured...");
+            Debug.Log($"Auto-executing tasks from sequence '{activeTaskSequence.name}' as configured...");
             ExecuteTasks();
         }
     }
@@ -272,9 +268,16 @@ public class TaskProgrammer : MonoBehaviour
     /// </summary>
     public void ExecuteTasks()
     {
-        if (tasks.Count == 0)
+        // --- ADD NULL CHECK ---
+        if (activeTaskSequence == null)
         {
-            Debug.LogWarning("No tasks to execute!");
+            Debug.LogWarning("Cannot execute: No active task sequence assigned!");
+            return;
+        }
+        // --- MODIFY LIST CHECK ---
+        if (activeTaskSequence.tasks.Count == 0)
+        {
+            Debug.LogWarning($"No tasks in the active sequence '{activeTaskSequence.name}' to execute!");
             return;
         }
 
@@ -301,7 +304,8 @@ public class TaskProgrammer : MonoBehaviour
         if (!isExecuting)
         {
             isExecuting = true;
-            StartCoroutine(ExecuteTaskSequence());
+            // --- Pass the sequence to the coroutine ---
+            StartCoroutine(ExecuteTaskSequenceCoroutine(activeTaskSequence));
         }
         else
         {
@@ -320,18 +324,21 @@ public class TaskProgrammer : MonoBehaviour
     }
 
     /// <summary>
-    /// Coroutine that executes the task sequence
+    /// Coroutine that executes the task sequence from the provided ScriptableObject
     /// </summary>
-    private IEnumerator ExecuteTaskSequence()
+    // --- RENAME and ADD PARAMETER ---
+    private IEnumerator ExecuteTaskSequenceCoroutine(TaskSequenceSO sequenceToExecute)
     {
-        Debug.Log("Starting task sequence execution");
+        Debug.Log($"Starting execution of sequence: {sequenceToExecute.name}");
+        List<BaseTask> tasksToRun = sequenceToExecute.tasks; // Get list from SO
 
         do
         {
-            for (int i = 0; i < tasks.Count; i++)
+            // --- Use tasksToRun ---
+            for (int i = 0; i < tasksToRun.Count; i++)
             {
-                BaseTask task = tasks[i];
-                Debug.Log($"Executing task {i + 1}/{tasks.Count} (Type: {task.taskType})");
+                BaseTask task = tasksToRun[i];
+                Debug.Log($"Executing task {i + 1}/{tasksToRun.Count} (Type: {task.taskType}) from sequence {sequenceToExecute.name}");
 
                 // Execute action based on task type
                 switch (task.taskType)
@@ -384,11 +391,11 @@ public class TaskProgrammer : MonoBehaviour
                 }
             }
 
-            Debug.Log("Task sequence completed");
+            Debug.Log($"Sequence {sequenceToExecute.name} completed");
 
             if (repeatSequence)
             {
-                Debug.Log("Repeating task sequence");
+                Debug.Log($"Repeating task sequence: {sequenceToExecute.name}");
             }
 
         } while (repeatSequence);
@@ -412,7 +419,7 @@ public class TaskProgrammer : MonoBehaviour
         }
 
         // Move towards target position using force-based movement with obstacle avoidance
-        while (Vector3.Distance(targetObject.transform.position, targetPosition) > 0.1f) // Use a slightly larger threshold for force-based movement
+        while (Vector3.Distance(targetObject.transform.position, targetPosition) > 0.001f) // Use a slightly larger threshold for force-based movement
         {
             // 1. Calculate Attraction Force towards the target
             Vector3 attractionDirection = (targetPosition - targetObject.transform.position).normalized;
@@ -436,10 +443,6 @@ public class TaskProgrammer : MonoBehaviour
 
             yield return null; // Wait for the next frame
         }
-
-        // Optional: Snap to the exact target position at the end if needed,
-        // but force-based movement might naturally settle close enough.
-        // targetObject.transform.position = targetPosition;
     }
 
     /// <summary>
@@ -498,9 +501,20 @@ public class TaskProgrammer : MonoBehaviour
     /// </summary>
     public void AddMovementTask(Vector3 position, float delay = 0.5f)
     {
-        MovementTask newTask = new MovementTask(position, delay);
-        tasks.Add(newTask);
-        Debug.Log($"Added new Movement Task: Position={position}, Delay={delay}");
+        // --- ADD NULL CHECK ---
+        if (activeTaskSequence == null)
+        {
+            Debug.LogError("Cannot add task: No active task sequence assigned.");
+            return;
+        }
+        // --- Add to SO's list ---
+        activeTaskSequence.tasks.Add(new MovementTask(position, delay));
+
+        // --- Mark SO as dirty (important for saving changes made at runtime) ---
+        #if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
+        #endif
+        Debug.Log($"Added Movement Task to sequence: {activeTaskSequence.name}");
     }
 
     /// <summary>
@@ -508,36 +522,43 @@ public class TaskProgrammer : MonoBehaviour
     /// </summary>
     public void AddGripperTask(GripperActionType action, float delay = 0.5f)
     {
-        GripperTask newTask = new GripperTask(action, delay);
-        tasks.Add(newTask);
-        Debug.Log($"Added new Gripper Task: Action={action}, Delay={delay}");
+        // --- ADD NULL CHECK ---
+        if (activeTaskSequence == null)
+        {
+            Debug.LogError("Cannot add task: No active task sequence assigned.");
+            return;
+        }
+        // --- Add to SO's list ---
+        activeTaskSequence.tasks.Add(new GripperTask(action, delay));
+
+        // --- Mark SO as dirty ---
+        #if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
+        #endif
+        Debug.Log($"Added Gripper Task to sequence: {activeTaskSequence.name}");
     }
 
     /// <summary>
     /// Update method to continuously save tasks at regular intervals
     /// </summary>
-    private void Update()
-    {
-        // Only save if autoSave is enabled
-        if (autoSave)
-        {
-            // Save at the specified interval
-            saveTimer += Time.deltaTime;
-            if (saveTimer >= saveInterval)
-            {
-                saveTimer = 0f;
-                SaveTasks();
-            }
-        }
-    }
-
+    // Update() method removed - Auto-save logic is no longer needed
     /// <summary>
     /// Clears all tasks from the sequence
     /// </summary>
     public void ClearTasks()
     {
-        tasks.Clear();
-        Debug.Log("All tasks cleared");
+        if (activeTaskSequence != null)
+        {
+            activeTaskSequence.tasks.Clear();
+            #if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
+            #endif
+            Debug.Log($"Cleared tasks from sequence: {activeTaskSequence.name}");
+        }
+        else
+        {
+            Debug.LogWarning("Cannot clear tasks: No active task sequence assigned.");
+        }
     }
 
     /// <summary>
@@ -554,7 +575,7 @@ public class TaskProgrammer : MonoBehaviour
     /// </summary>
     public int GetTaskCount()
     {
-        return tasks.Count;
+        return activeTaskSequence != null ? activeTaskSequence.tasks.Count : 0;
     }
 
     /// <summary>
@@ -578,83 +599,36 @@ public class TaskProgrammer : MonoBehaviour
     }
 
     /// <summary>
-    /// Saves the current position of the target object as a new task
-    /// This method is intended to be called by a UI button
+    /// Saves the current position of the target object as a new task in the active sequence.
+    /// This method is intended to be called by a UI button or other runtime logic.
     /// </summary>
     public void SaveCurrentPositionAsTask()
     {
-        Debug.Log("SaveCurrentPositionAsTask method called");
-
         if (targetObject == null)
         {
             Debug.LogError("Cannot save position: Target object is missing!");
             return;
         }
+        // --- ADD NULL CHECK ---
+        if (activeTaskSequence == null)
+        {
+            Debug.LogError("Cannot save position as task: No active task sequence assigned.");
+            return;
+        }
 
-        // Get current position of the target object
         Vector3 currentPosition = targetObject.transform.position;
-        Debug.Log($"Current position retrieved: {currentPosition}");
-        
-        // Add a new MovementTask with the current position
-        AddMovementTask(currentPosition); // Use the specific method for movement tasks
-        
-        Debug.Log($"Saved current position as Movement Task: {currentPosition}");
-        Debug.Log("SaveCurrentPositionAsTask method completed successfully");
+        // --- Add directly to SO's list ---
+        activeTaskSequence.tasks.Add(new MovementTask(currentPosition));
+
+        // --- Mark SO as dirty ---
+        #if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
+        #endif
+        Debug.Log($"Saved current position {currentPosition} as a Movement Task in sequence {activeTaskSequence.name}");
     }
 
-    /// <summary>
-    /// Saves the current task list to a JSON file
-    /// </summary>
-    public void SaveTasks()
-    {
-        Debug.Log("SaveTasks method called");
-        try
-        {
-            TaskSaveData saveData = new TaskSaveData
-            {
-                tasks = tasks
-            };
-
-            string json = JsonUtility.ToJson(saveData, true);
-            File.WriteAllText(SaveFilePath, json);
-
-            Debug.Log($"Tasks saved to: {SaveFilePath}");
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error saving tasks: {e.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Loads tasks from a JSON file
-    /// </summary>
-    public void LoadTasks()
-    {
-        try
-        {
-            if (File.Exists(SaveFilePath))
-            {
-                string json = File.ReadAllText(SaveFilePath);
-                TaskSaveData saveData = JsonUtility.FromJson<TaskSaveData>(json);
-
-                if (saveData != null && saveData.tasks != null)
-                {
-                    tasks = saveData.tasks;
-                    Debug.Log($"Loaded {tasks.Count} tasks from: {SaveFilePath}");
-                }
-            }
-            else
-            {
-                Debug.Log("No saved tasks found. Starting with empty task list.");
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error loading tasks: {e.Message}");
-        }
-    }
-
+    // SaveTasks() method removed - Handled by ScriptableObject persistence
+    // LoadTasks() method removed - Handled by ScriptableObject assignment
     /// <summary>
     /// Draws Gizmos in the Scene view for debugging obstacle avoidance ranges.
     /// </summary>
