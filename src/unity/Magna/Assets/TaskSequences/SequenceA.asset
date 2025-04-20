@@ -21,6 +21,10 @@ MonoBehaviour:
   - rid: 2932953238370254852
   - rid: 2932953238370254853
   - rid: 2932953238370254854
+  - rid: 2932953238488481792
+  - rid: 2932953238488481793
+  - rid: 2932953238488481794
+  - rid: 2932953238488481795
   references:
     version: 2
     RefIds:
@@ -66,3 +70,27 @@ MonoBehaviour:
         taskType: 1
         delayAfterAction: 0.5
         actionType: 1
+    - rid: 2932953238488481792
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: 0.13923378, y: 0.7540123, z: -0.2765975}
+    - rid: 2932953238488481793
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: -0.22556296, y: 0.52334416, z: -0.54005575}
+    - rid: 2932953238488481794
+      type: {class: GripperTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 1
+        delayAfterAction: 0.5
+        actionType: 0
+    - rid: 2932953238488481795
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: 0.017798387, y: 0.9632691, z: -0.2091851}

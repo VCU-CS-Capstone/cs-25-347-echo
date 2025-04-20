@@ -370,14 +370,16 @@ MonoBehaviour:
   gripperController: {fileID: 10410093}
   nativeAvatar: {fileID: 114951219678678768}
   udpCommComponent: {fileID: 4706292499343406789}
-  activeTaskSequence: {fileID: 11400000, guid: 610e45b7a8bc00a4fb50fd2ba6444075, type: 2}
+  activeTaskSequence: {fileID: 11400000, guid: e4dcdcc03555780418384b1723f7c42c, type: 2}
   executeOnStart: 1
   repeatSequence: 0
-  movementSpeed: 0.5
+  movementSpeed: 0.25
+  movementSmoothTime: 0.3
   minDistanceToObstacle: 0.3
   repulsionStrength: 10
   attractionStrength: 1
-  archHeight: 1
+  defaultPosition: {x: 0, y: 1, z: -0.2}
+  minRequiredJoints: 3
   startDelayAfterConnection: 0.5
 --- !u!4 &522346867
 Transform:
@@ -1215,6 +1217,18 @@ PrefabInstance:
     - target: {fileID: 4645066055152648724, guid: ccd1b8eb282da5c4985ee430d01f495d, type: 3}
       propertyPath: m_Enabled
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4645066055152648724, guid: ccd1b8eb282da5c4985ee430d01f495d, type: 3}
+      propertyPath: typeJoint.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4645066055152648724, guid: ccd1b8eb282da5c4985ee430d01f495d, type: 3}
+      propertyPath: typeJoint.Array.data[1]
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 4645066055152648724, guid: ccd1b8eb282da5c4985ee430d01f495d, type: 3}
+      propertyPath: typeJoint.Array.data[2]
+      value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 4749665308144934836, guid: ccd1b8eb282da5c4985ee430d01f495d, type: 3}
       propertyPath: m_Name

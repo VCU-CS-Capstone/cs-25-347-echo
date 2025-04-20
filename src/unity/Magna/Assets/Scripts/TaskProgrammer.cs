@@ -87,12 +87,19 @@ public class TaskProgrammer : MonoBehaviour
     [Header("Movement Speed")]
     [SerializeField] private float movementSpeed = 2.0f; // Base speed, might be adjusted by forces
 
+    [Header("Movement Smoothing")]
+    [SerializeField] private float movementSmoothTime = 0.3f; // SmoothDamp time for movement smoothing
+
     [Header("Obstacle Avoidance")]
     [SerializeField] private float minDistanceToObstacle = 0.3f; // Minimum distance to maintain from obstacles
     [SerializeField] private float repulsionStrength = 10.0f;     // How strongly to push away from obstacles
     [SerializeField] private float attractionStrength = 1.0f;    // How strongly to pull towards the target
 
     private const float connectionMaxWaitTime = 60f; // Maximum time to wait for connection in seconds (fixed)
+
+    [Header("Safety Settings")]
+    [SerializeField] private Vector3 defaultPosition = Vector3.zero; // Position to move to if joints are lost
+    [SerializeField] [Tooltip("Minimum number of joints that must be detected to continue execution.")] private int minRequiredJoints = 1; // Minimum required joints
 
     [Header("Connection Settings")]
     [SerializeField]
@@ -101,7 +108,8 @@ public class TaskProgrammer : MonoBehaviour
 
     private bool isExecuting = false;
     private bool isUdpConnected = false;
-    
+    private bool isAtDefaultPositionDueToLostJoints = false; // Flag for safety state
+
     // Public accessors
     public GameObject GetTargetObject() => targetObject;
     public TaskSequenceSO GetActiveSequence() => activeTaskSequence;
@@ -304,6 +312,31 @@ public class TaskProgrammer : MonoBehaviour
         {
             for (int i = 0; i < tasksToRun.Count; i++)
             {
+                // --- Joint Detection Check ---
+                while (!AreEnoughJointsDetected())
+                {
+                    if (!isAtDefaultPositionDueToLostJoints)
+                    {
+                        Debug.LogWarning($"Not enough joints detected ({CountDetectedJoints()}/{minRequiredJoints} required) before task {i + 1}. Moving to default position: {defaultPosition}");
+                        // Stop potentially running movement coroutine? Let's assume MoveToPosition handles it.
+                        yield return StartCoroutine(MoveToPosition(defaultPosition));
+                        isAtDefaultPositionDueToLostJoints = true;
+                    }
+                    Debug.Log($"Waiting for at least {minRequiredJoints} joints to be detected...");
+                    yield return new WaitUntil(AreEnoughJointsDetected); // Pause execution here
+                    Debug.Log($"Enough joints detected ({CountDetectedJoints()}). Resuming task sequence.");
+                }
+
+                // If we were paused at the default position and joints are now detected, reset the flag
+                if (isAtDefaultPositionDueToLostJoints)
+                {
+                    Debug.Log("Resuming normal operation from default position.");
+                    isAtDefaultPositionDueToLostJoints = false;
+                    // Optional: Add a small delay before starting the actual task?
+                    // yield return new WaitForSeconds(0.5f);
+                }
+                // --- End Joint Detection Check ---
+
                 BaseTask task = tasksToRun[i];
                 Debug.Log($"Executing task {i + 1}/{tasksToRun.Count} (Type: {task.taskType}) from sequence {sequenceToExecute.name}");
 
@@ -373,6 +406,8 @@ public class TaskProgrammer : MonoBehaviour
     /// </summary>
     private IEnumerator MoveToPosition(Vector3 targetPosition)
     {
+        Vector3 smoothVelocity = Vector3.zero;
+        Vector3 velocityRef = Vector3.zero;
         Vector3 startPosition = targetObject.transform.position;
         float totalDistance = Vector3.Distance(startPosition, targetPosition);
 
@@ -392,9 +427,12 @@ public class TaskProgrammer : MonoBehaviour
             // 3. Combine Forces
             Vector3 totalForce = attractionForce + repulsionForce;
 
-            // 4. Apply Movement
-            Vector3 velocity = totalForce;
-            targetObject.transform.position += velocity * movementSpeed * Time.deltaTime;
+            // 4. Compute raw velocity
+            Vector3 rawVelocity = totalForce * movementSpeed;
+            // 5. Smooth velocity
+            smoothVelocity = Vector3.SmoothDamp(smoothVelocity, rawVelocity, ref velocityRef, movementSmoothTime);
+            // 6. Apply smoothed movement
+            targetObject.transform.position += smoothVelocity * Time.deltaTime;
 
             yield return null; // Wait for the next frame
         }
@@ -617,5 +655,44 @@ public class TaskProgrammer : MonoBehaviour
                 }
             }
         }
+    }
+    /// <summary>
+    /// Checks if at least the minimum required number of Nuitrack joints are currently detected and active.
+    /// </summary>
+    /// <returns>True if enough joints are detected, false otherwise.</returns>
+    private bool AreEnoughJointsDetected()
+    {
+        return CountDetectedJoints() >= minRequiredJoints;
+    }
+
+    /// <summary>
+    /// Counts the number of currently detected and active Nuitrack joints.
+    /// </summary>
+    /// <returns>The number of active joints.</returns>
+    private int CountDetectedJoints()
+    {
+        if (nativeAvatar == null)
+        {
+            Debug.LogWarning("NativeAvatar reference is missing in TaskProgrammer. Cannot check joint status. Assuming OK.");
+            return minRequiredJoints; // Assume OK if avatar not linked
+        }
+
+        if (nativeAvatar.CreatedJoint == null || nativeAvatar.CreatedJoint.Length == 0)
+        {
+            // If NativeAvatar exists but hasn't initialized joints or has none configured, treat as 0 detected.
+            // Or, if minRequiredJoints is 0, this state is acceptable.
+            return 0;
+        }
+
+        int detectedCount = 0;
+        foreach (GameObject jointObject in nativeAvatar.CreatedJoint)
+        {
+            // Check if the joint GameObject exists and is currently active in the hierarchy
+            if (jointObject != null && jointObject.activeSelf)
+            {
+                detectedCount++;
+            }
+        }
+        return detectedCount;
     }
 }
