@@ -378,8 +378,7 @@ MonoBehaviour:
   minDistanceToObstacle: 0.3
   repulsionStrength: 10
   attractionStrength: 1
-  defaultPosition: {x: 0, y: 1, z: -0.2}
-  minRequiredJoints: 3
+  defaultPosition: {x: 0, y: 0.5, z: -0.2}
   startDelayAfterConnection: 0.5
 --- !u!4 &522346867
 Transform:
