@@ -96,8 +96,7 @@ public class TaskProgrammer : MonoBehaviour
 
     [Header("Safety Settings")]
     [SerializeField] private Vector3 defaultPosition = Vector3.zero;
-    [SerializeField, Tooltip("Minimum number of joints that must be detected to continue execution.")]
-    private int minRequiredJoints = 3;
+    // No longer using minimum joints as we're now checking for skeleton presence directly
 
     [Header("Connection Settings")]
     [SerializeField, Tooltip("Delay in seconds after connection is established before starting task execution")]
@@ -105,7 +104,7 @@ public class TaskProgrammer : MonoBehaviour
 
     private bool isExecuting = false;
     private bool isUdpConnected = false;
-    private bool isAtDefaultPositionDueToLostJoints = false;
+    private bool isAtDefaultPositionDueToLostSkeleton = false;
 
     public static TaskProgrammer Instance { get; private set; }
     public GameObject GetTargetObject() => targetObject;
@@ -244,8 +243,8 @@ public class TaskProgrammer : MonoBehaviour
         isExecuting = false;
     }
 
-    // --- Movement with continuous joint-monitoring & mid-move abort ---
-    private IEnumerator MoveToPositionUntilJointLoss(Vector3 targetPos)
+    // --- Movement with continuous skeleton-monitoring & mid-move abort ---
+    private IEnumerator MoveToPositionUntilSkeletonLoss(Vector3 targetPos)
     {
         Vector3 vel = Vector3.zero, velRef = Vector3.zero;
 
@@ -257,8 +256,8 @@ public class TaskProgrammer : MonoBehaviour
 
         while (Vector3.Distance(targetObject.transform.position, targetPos) > 0.01f)
         {
-            if (!AreEnoughJointsDetected())
-                yield break;  // abort if joints drop
+            if (!IsSkeletonDetected())
+                yield break;  // abort if skeleton is lost
 
             Vector3 dir = (targetPos - targetObject.transform.position).normalized;
             Vector3 force = dir * attractionStrength + CalculateRepulsionForce();
@@ -278,22 +277,22 @@ public class TaskProgrammer : MonoBehaviour
         while (!done)
         {
             // pre-check
-            if (!AreEnoughJointsDetected())
+            if (!IsSkeletonDetected())
             {
-                if (!isAtDefaultPositionDueToLostJoints)
+                if (!isAtDefaultPositionDueToLostSkeleton)
                 {
-                    Debug.LogWarning($"Joints lost before movement. Going to default {defaultPosition}");
+                    Debug.LogWarning($"Skeleton lost before movement. Going to default {defaultPosition}");
                     yield return StartCoroutine(MoveToPosition(defaultPosition));
-                    isAtDefaultPositionDueToLostJoints = true;
+                    isAtDefaultPositionDueToLostSkeleton = true;
                 }
-                yield return new WaitUntil(AreEnoughJointsDetected);
-                Debug.Log("Joints regained. Resuming movement.");
-                isAtDefaultPositionDueToLostJoints = false;
+                yield return new WaitUntil(IsSkeletonDetected);
+                Debug.Log("Skeleton detected. Resuming movement.");
+                isAtDefaultPositionDueToLostSkeleton = false;
                 yield return new WaitForSeconds(0.2f);
             }
 
             // attempt move
-            yield return StartCoroutine(MoveToPositionUntilJointLoss(moveTask.targetPosition));
+            yield return StartCoroutine(MoveToPositionUntilSkeletonLoss(moveTask.targetPosition));
 
             if (Vector3.Distance(targetObject.transform.position, moveTask.targetPosition) < 0.01f)
             {
@@ -310,18 +309,18 @@ public class TaskProgrammer : MonoBehaviour
     // --- Gripper only pre-checks, no mid-action abort ---
     private IEnumerator ExecuteGripperTaskWithSafety(GripperTask gripTask)
     {
-        // ensure joints present
-        if (!AreEnoughJointsDetected())
+        // ensure skeleton is detected
+        if (!IsSkeletonDetected())
         {
-            if (!isAtDefaultPositionDueToLostJoints)
+            if (!isAtDefaultPositionDueToLostSkeleton)
             {
-                Debug.LogWarning($"Joints lost before gripper action. Going to default {defaultPosition}");
+                Debug.LogWarning($"Skeleton lost before gripper action. Going to default {defaultPosition}");
                 yield return StartCoroutine(MoveToPosition(defaultPosition));
-                isAtDefaultPositionDueToLostJoints = true;
+                isAtDefaultPositionDueToLostSkeleton = true;
             }
-            yield return new WaitUntil(AreEnoughJointsDetected);
-            Debug.Log("Joints regained. Performing gripper action.");
-            isAtDefaultPositionDueToLostJoints = false;
+            yield return new WaitUntil(IsSkeletonDetected);
+            Debug.Log("Skeleton detected. Performing gripper action.");
+            isAtDefaultPositionDueToLostSkeleton = false;
             yield return new WaitForSeconds(0.2f);
         }
 
@@ -380,23 +379,20 @@ public class TaskProgrammer : MonoBehaviour
         targetObject.transform.position = targetPos;
     }
 
-    // Utility joint checks
-    private bool AreEnoughJointsDetected() => CountDetectedJoints() >= minRequiredJoints;
-
-    private int CountDetectedJoints()
+    // Utility skeleton detection check
+    private bool IsSkeletonDetected()
     {
         if (nativeAvatar == null)
         {
-            Debug.LogWarning("NativeAvatar missing; assuming joints OK.");
-            return minRequiredJoints;
+            Debug.LogWarning("NativeAvatar missing; assuming skeleton is OK.");
+            return true;
         }
-        if (nativeAvatar.CreatedJoint == null || nativeAvatar.CreatedJoint.Length == 0)
-            return 0;
-
-        int count = 0;
-        foreach (var joint in nativeAvatar.CreatedJoint)
-            if (joint != null && joint.activeSelf) count++;
-        return count;
+        
+        // Check if skeleton is found using the same logic as in NativeAvatar.cs
+        bool skeletonFound = NuitrackManager.sensorsData[NuitrackManager.sensorsData.Count > 0 ? 0 : 0].Users.Current != null &&
+                           NuitrackManager.sensorsData[NuitrackManager.sensorsData.Count > 0 ? 0 : 0].Users.Current.Skeleton != null;
+        
+        return skeletonFound;
     }
 
     // Runtime task editing & utilities
