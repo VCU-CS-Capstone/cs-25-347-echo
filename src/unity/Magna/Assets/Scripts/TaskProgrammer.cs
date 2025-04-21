@@ -99,12 +99,12 @@ public class TaskProgrammer : MonoBehaviour
 
     [Header("Safety Settings")]
     [SerializeField] private Vector3 defaultPosition = Vector3.zero; // Position to move to if joints are lost
-    [SerializeField] [Tooltip("Minimum number of joints that must be detected to continue execution.")] private int minRequiredJoints = 1; // Minimum required joints
+    [SerializeField] [Tooltip("Minimum number of joints that must be detected to continue execution.")] private int minRequiredJoints = 3; // Minimum required joints
 
     [Header("Connection Settings")]
     [SerializeField]
     [Tooltip("Delay in seconds after connection is established before starting task execution")]
-    private float startDelayAfterConnection = 2.0f; // Default 2-second delay after connection
+    private float startDelayAfterConnection = 0.5f; // Default 2-second delay after connection
 
     private bool isExecuting = false;
     private bool isUdpConnected = false;
