@@ -465,14 +465,8 @@ public class TaskProgrammer : MonoBehaviour
                 {
                     Vector3 repulsionDirection = (targetObject.transform.position - obstacle.position).normalized;
 
-                    // Repulsion strength increases quadratically as we get closer (stronger push near obstacle)
-                    // Inverse square falloff is common, but let's try linear falloff first for simplicity
-                    // float repulsionMagnitude = repulsionStrength * (1.0f - (distance / influenceRange));
-                    // Let's try inverse relationship: stronger when closer
-                    float repulsionMagnitude = repulsionStrength * (influenceRange / distance - 1.0f); // Gets stronger as distance approaches 0
-                    repulsionMagnitude = Mathf.Clamp(repulsionMagnitude, 0, repulsionStrength * 5); // Clamp max force
-
-
+                    float repulsionMagnitude = repulsionStrength * (1.0f - (distance / influenceRange));
+                    
                     // Add to total repulsion
                     totalRepulsion += repulsionDirection * repulsionMagnitude;
                 }
