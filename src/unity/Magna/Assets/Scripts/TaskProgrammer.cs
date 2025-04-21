@@ -285,9 +285,8 @@ public class TaskProgrammer : MonoBehaviour
                     yield return StartCoroutine(MoveToPosition(defaultPosition));
                     isAtDefaultPositionDueToLostSkeleton = true;
                 }
-                Debug.Log($"Waiting for skeleton... sensorsData.Count={NuitrackManager.sensorsData.Count}");
                 yield return new WaitUntil(IsSkeletonDetected);
-                Debug.Log($"Skeleton detected. Resuming movement. sensorsData.Count={NuitrackManager.sensorsData.Count}");
+                Debug.Log("Skeleton detected. Resuming movement.");
                 isAtDefaultPositionDueToLostSkeleton = false;
                 yield return new WaitForSeconds(0.2f);
             }
@@ -388,23 +387,11 @@ public class TaskProgrammer : MonoBehaviour
             Debug.LogWarning("NativeAvatar missing; assuming skeleton is OK.");
             return true;
         }
-
-        int count = NuitrackManager.sensorsData.Count;
-        int idx = count > 0 ? 0 : -1;
-        bool skeletonFound = false;
-        if (idx < 0)
-        {
-            Debug.LogWarning($"IsSkeletonDetected: no sensorsData entries. count={count}");
-        }
-        else
-        {
-            var data = NuitrackManager.sensorsData[idx];
-            bool userExists = data.Users.Current != null;
-            bool skeletonExists = userExists && data.Users.Current.Skeleton != null;
-            skeletonFound = skeletonExists;
-            Debug.Log($"IsSkeletonDetected: sensorsData.Count={count}, Users.Current={userExists}, Skeleton={skeletonExists}");
-        }
-
+        
+        // Check if skeleton is found using the same logic as in NativeAvatar.cs
+        bool skeletonFound = NuitrackManager.sensorsData[NuitrackManager.sensorsData.Count > 0 ? 0 : 0].Users.Current != null &&
+                           NuitrackManager.sensorsData[NuitrackManager.sensorsData.Count > 0 ? 0 : 0].Users.Current.Skeleton != null;
+        
         return skeletonFound;
     }
 
