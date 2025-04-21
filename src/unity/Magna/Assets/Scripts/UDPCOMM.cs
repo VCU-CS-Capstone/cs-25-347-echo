@@ -22,11 +22,11 @@ public class UDPCOMM : MonoBehaviour
     private IPEndPoint robotAddress;
 
     public string robotIpAddress = "192.168.0.4";
-    
+
     [Header("Noise Configuration")]
     [Tooltip("Enable or disable position noise")]
     public bool enableNoise = true;
-    
+
     [Tooltip("Amount of noise to add (±) in mm")]
     public float noiseAmount = 1f;
 
@@ -50,9 +50,6 @@ public class UDPCOMM : MonoBehaviour
     public GameObject joint4;
     public GameObject joint5;
     public GameObject joint6;
-
-    /* Flag to track if we've logged the initial position */
-    private bool initialPositionLogged = false;
 
     /* Connection status tracking */
     private bool isConnectionEstablished = false;
@@ -183,15 +180,6 @@ public class UDPCOMM : MonoBehaviour
             {
                 Debug.LogWarning("Target GameObject not assigned in UDPCOMM script.");
             }
-
-
-            // Log the initial position if not already logged
-            if (!initialPositionLogged)
-            {
-                initialPositionLogged = true;
-                Debug.Log("Initial robot position - X:" + x + ", Y:" + y + ", Z:" + z +
-                          ", RX:" + rx + ", RY:" + ry + ", RZ:" + rz);
-            }
         }
         else
         {
@@ -213,7 +201,7 @@ public class UDPCOMM : MonoBehaviour
         double noiseX = zx;
         double noiseY = zy;
         double noiseZ = zz;
-        
+
         // Apply noise only if enabled
         if (enableNoise)
         {
