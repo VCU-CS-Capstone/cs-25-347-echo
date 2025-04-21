@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using UnityEngine;
 
 public enum TaskType
@@ -60,13 +59,12 @@ public class GripperTask : BaseTask
     }
 }
 
-
 public class TaskProgrammer : MonoBehaviour
 {
     [System.Serializable]
     private class TaskSaveData
     {
-        [SerializeReference] // Required for serializing derived types
+        [SerializeReference]
         public List<BaseTask> tasks = new List<BaseTask>();
     }
 
@@ -74,225 +72,136 @@ public class TaskProgrammer : MonoBehaviour
     [SerializeField] private GameObject targetObject;
     [SerializeField] private GripperController gripperController;
     [SerializeField] private NuitrackSDK.Tutorials.FirstProject.NativeAvatar nativeAvatar;
-    [SerializeField] private UDPCOMM udpCommComponent; // Reference to the UDPCOMM component
+    [SerializeField] private UDPCOMM udpCommComponent;
 
     [Header("Task Sequence")]
-    [Tooltip("The Task Sequence asset currently assigned to this programmer.")]
     [SerializeField] private TaskSequenceSO activeTaskSequence;
-    
+
     [Header("Execution Settings")]
     [SerializeField] private bool executeOnStart = false;
     [SerializeField] private bool repeatSequence = false;
 
     [Header("Movement Speed")]
-    [SerializeField] private float movementSpeed = 2.0f; // Base speed, might be adjusted by forces
+    [SerializeField] private float movementSpeed = 2.0f;
 
     [Header("Movement Smoothing")]
-    [SerializeField] private float movementSmoothTime = 0.3f; // SmoothDamp time for movement smoothing
+    [SerializeField] private float movementSmoothTime = 0.3f;
 
     [Header("Obstacle Avoidance")]
-    [SerializeField] private float minDistanceToObstacle = 0.3f; // Minimum distance to maintain from obstacles
-    [SerializeField] private float repulsionStrength = 10.0f;     // How strongly to push away from obstacles
-    [SerializeField] private float attractionStrength = 1.0f;    // How strongly to pull towards the target
+    [SerializeField] private float minDistanceToObstacle = 0.3f;
+    [SerializeField] private float repulsionStrength = 10.0f;
+    [SerializeField] private float attractionStrength = 1.0f;
 
-    private const float connectionMaxWaitTime = 60f; // Maximum time to wait for connection in seconds (fixed)
+    private const float connectionMaxWaitTime = 60f;
 
     [Header("Safety Settings")]
-    [SerializeField] private Vector3 defaultPosition = Vector3.zero; // Position to move to if joints are lost
-    [SerializeField] [Tooltip("Minimum number of joints that must be detected to continue execution.")] private int minRequiredJoints = 3; // Minimum required joints
+    [SerializeField] private Vector3 defaultPosition = Vector3.zero;
+    [SerializeField, Tooltip("Minimum number of joints that must be detected to continue execution.")]
+    private int minRequiredJoints = 3;
 
     [Header("Connection Settings")]
-    [SerializeField]
-    [Tooltip("Delay in seconds after connection is established before starting task execution")]
-    private float startDelayAfterConnection = 0.5f; // Default 2-second delay after connection
+    [SerializeField, Tooltip("Delay in seconds after connection is established before starting task execution")]
+    private float startDelayAfterConnection = 0.5f;
 
     private bool isExecuting = false;
     private bool isUdpConnected = false;
-    private bool isAtDefaultPositionDueToLostJoints = false; // Flag for safety state
+    private bool isAtDefaultPositionDueToLostJoints = false;
 
-    // Public accessors
+    public static TaskProgrammer Instance { get; private set; }
     public GameObject GetTargetObject() => targetObject;
     public TaskSequenceSO GetActiveSequence() => activeTaskSequence;
-    
-    public static TaskProgrammer Instance { get; private set; }
+
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-        }
+        if (Instance == null) Instance = this;
         else if (Instance != this)
-        {
             Debug.LogWarning("Multiple TaskProgrammer instances detected. Only using the first one.");
-        }
     }
 
     private void Start()
     {
-        Debug.Log("TaskProgrammer Start method called");
-
         if (targetObject == null)
         {
             Debug.LogError("Target object reference is missing!");
-            targetObject = gameObject; // Default to self if missing
+            targetObject = gameObject;
         }
 
         if (gripperController == null)
         {
             Debug.LogError("GripperController reference is missing!");
             gripperController = FindObjectOfType<GripperController>();
-
             if (gripperController == null)
-            {
                 Debug.LogError("Could not find GripperController in the scene!");
-            }
         }
 
         if (nativeAvatar == null)
-        {
-            Debug.LogWarning("NativeAvatar reference is missing!");
             nativeAvatar = FindObjectOfType<NuitrackSDK.Tutorials.FirstProject.NativeAvatar>();
-        }
 
         if (udpCommComponent == null)
-        {
-            Debug.Log("UDPCOMM reference is missing. Attempting to find it in the scene.");
             udpCommComponent = FindObjectOfType<UDPCOMM>();
-
-            if (udpCommComponent == null)
-            {
-                Debug.LogError("Could not find UDPCOMM in the scene! Tasks will not execute until UDPCOMM is available.");
-            }
-        }
-
 
         StartCoroutine(WaitForUdpConnection());
     }
 
-    /// <summary>
-    /// Coroutine that waits for the UDPCOMM connection to be established before executing tasks
-    /// </summary>
     private IEnumerator WaitForUdpConnection()
     {
-        Debug.Log("Waiting for UDPCOMM to establish connection...");
-
         yield return new WaitForSeconds(1.0f);
 
-        float componentWaitTime = 0f;
-        float componentMaxWaitTime = 10f; // Max time to wait for component to be found
-
-        while (udpCommComponent == null && componentWaitTime < componentMaxWaitTime)
+        float componentWait = 0f, componentMax = 10f;
+        while (udpCommComponent == null && componentWait < componentMax)
         {
             udpCommComponent = FindObjectOfType<UDPCOMM>();
-            componentWaitTime += 0.5f;
+            componentWait += 0.5f;
             yield return new WaitForSeconds(0.5f);
         }
-
         if (udpCommComponent == null)
         {
-            Debug.LogError("UDPCOMM component not found after " + componentMaxWaitTime + " seconds. Cannot execute tasks.");
-            yield break; // Exit the coroutine
+            Debug.LogError($"UDPCOMM not found after {componentMax} seconds.");
+            yield break;
         }
 
-        float connectionWaitTime = 0f;
-        bool connectionLoggedOnce = false;
-
-        Debug.Log("Waiting for EGM connection...");
-
-        while (connectionWaitTime < connectionMaxWaitTime)
+        float connWait = 0f;
+        while (connWait < connectionMaxWaitTime && !udpCommComponent.IsConnectionEstablished)
         {
-            // Check if connection is established
-            if (udpCommComponent.IsConnectionEstablished)
-            {
-                Debug.Log("UDPCOMM connection established.");
-                isUdpConnected = true;
-                break;
-            }
-
-            if (!connectionLoggedOnce || Mathf.FloorToInt(connectionWaitTime) % 5 == 0)
-            {
-                connectionLoggedOnce = true;
-                Debug.Log($"Waiting for EGM connection... Status: Connection={udpCommComponent.IsConnectionEstablished}");
-            }
-
-            connectionWaitTime += 0.5f;
+            if (connWait % 5 < 0.5f)
+                Debug.Log($"Waiting for EGM connection... ({connWait:F1}s)");
+            connWait += 0.5f;
             yield return new WaitForSeconds(0.5f);
         }
-
-        if (!isUdpConnected)
+        if (!udpCommComponent.IsConnectionEstablished)
         {
-            Debug.LogWarning($"Timed out waiting for UDPCOMM connection after {connectionMaxWaitTime} seconds.");
-            Debug.LogWarning($"Connection status: IsConnectionEstablished={udpCommComponent.IsConnectionEstablished}");
-
-            // Do not proceed with execution if connection failed
-            Debug.LogError("Task execution aborted due to communication failure with robot.");
-            yield break; // Exit without executing tasks
+            Debug.LogError("Connection timed out. Aborting task execution.");
+            yield break;
         }
 
+        isUdpConnected = true;
         if (startDelayAfterConnection > 0)
-        {
-            Debug.Log($"Connection established. Waiting for {startDelayAfterConnection} seconds before starting task execution...");
             yield return new WaitForSeconds(startDelayAfterConnection);
-            Debug.Log("Delay completed. Ready to execute tasks.");
-        }
-        else
-        {
-            Debug.Log("Connection established. Ready to execute tasks immediately (no delay configured).");
-        }
 
         if (executeOnStart && activeTaskSequence != null && activeTaskSequence.tasks.Count > 0)
-        {
-            Debug.Log($"Auto-executing tasks from sequence '{activeTaskSequence.name}' as configured...");
             ExecuteTasks();
-        }
     }
 
-    /// <summary>
-    /// Executes the programmed task sequence
-    /// </summary>
     public void ExecuteTasks()
     {
-        if (activeTaskSequence == null)
+        if (activeTaskSequence == null || activeTaskSequence.tasks.Count == 0)
         {
-            Debug.LogWarning("Cannot execute: No active task sequence assigned!");
+            Debug.LogWarning("No active task sequence or tasks to execute!");
             return;
         }
-        if (activeTaskSequence.tasks.Count == 0)
+        if (!isUdpConnected)
         {
-            Debug.LogWarning($"No tasks in the active sequence '{activeTaskSequence.name}' to execute!");
-            return;
-        }
-
-        if (udpCommComponent == null || !udpCommComponent.IsConnectionEstablished)
-        {
-            Debug.LogWarning("Cannot execute tasks: UDPCOMM connection not established.");
-            Debug.LogWarning($"Connection status: {(udpCommComponent == null ? "UDPCOMM not found" : $"Connection={udpCommComponent.IsConnectionEstablished}")}");
-
             executeOnStart = true;
-
-            if (udpCommComponent == null)
-            {
-                udpCommComponent = FindObjectOfType<UDPCOMM>();
-            }
-
             StartCoroutine(WaitForUdpConnection());
             return;
         }
-
         if (!isExecuting)
         {
             isExecuting = true;
             StartCoroutine(ExecuteTaskSequenceCoroutine(activeTaskSequence));
         }
-        else
-        {
-            Debug.LogWarning("Task sequence is already executing!");
-        }
     }
 
-    /// <summary>
-    /// Stops the current task execution
-    /// </summary>
     public void StopExecution()
     {
         StopAllCoroutines();
@@ -300,185 +209,198 @@ public class TaskProgrammer : MonoBehaviour
         Debug.Log("Task execution stopped");
     }
 
-    /// <summary>
-    /// Coroutine that executes the task sequence from the provided ScriptableObject
-    /// </summary>
-    private IEnumerator ExecuteTaskSequenceCoroutine(TaskSequenceSO sequenceToExecute)
+    private IEnumerator ExecuteTaskSequenceCoroutine(TaskSequenceSO sequence)
     {
-        Debug.Log($"Starting execution of sequence: {sequenceToExecute.name}");
-        List<BaseTask> tasksToRun = sequenceToExecute.tasks;
+        Debug.Log($"Starting sequence '{sequence.name}'");
+        var tasks = sequence.tasks;
 
         do
         {
-            for (int i = 0; i < tasksToRun.Count; i++)
+            for (int i = 0; i < tasks.Count; i++)
             {
-                // --- Joint Detection Check ---
-                while (!AreEnoughJointsDetected())
-                {
-                    if (!isAtDefaultPositionDueToLostJoints)
-                    {
-                        Debug.LogWarning($"Not enough joints detected ({CountDetectedJoints()}/{minRequiredJoints} required) before task {i + 1}. Moving to default position: {defaultPosition}");
-                        // Stop potentially running movement coroutine? Let's assume MoveToPosition handles it.
-                        yield return StartCoroutine(MoveToPosition(defaultPosition));
-                        isAtDefaultPositionDueToLostJoints = true;
-                    }
-                    Debug.Log($"Waiting for at least {minRequiredJoints} joints to be detected...");
-                    yield return new WaitUntil(AreEnoughJointsDetected); // Pause execution here
-                    Debug.Log($"Enough joints detected ({CountDetectedJoints()}). Resuming task sequence.");
-                }
-
-                // If we were paused at the default position and joints are now detected, reset the flag
-                if (isAtDefaultPositionDueToLostJoints)
-                {
-                    Debug.Log("Resuming normal operation from default position.");
-                    isAtDefaultPositionDueToLostJoints = false;
-                    // Optional: Add a small delay before starting the actual task?
-                    // yield return new WaitForSeconds(0.5f);
-                }
-                // --- End Joint Detection Check ---
-
-                BaseTask task = tasksToRun[i];
-                Debug.Log($"Executing task {i + 1}/{tasksToRun.Count} (Type: {task.taskType}) from sequence {sequenceToExecute.name}");
+                BaseTask task = tasks[i];
+                Debug.Log($"Task {i + 1}/{tasks.Count}: {task.taskType}");
 
                 switch (task.taskType)
                 {
                     case TaskType.Movement:
-                        MovementTask moveTask = task as MovementTask;
-                        if (moveTask != null)
-                        {
-                            Debug.Log($"Moving to position: {moveTask.targetPosition}");
-                            yield return StartCoroutine(MoveToPosition(moveTask.targetPosition));
-                            Debug.Log($"Reached position: {moveTask.targetPosition}");
-                        }
-                        else
-                        {
-                            Debug.LogError($"Task {i + 1} is Movement type but failed to cast.");
-                        }
+                        yield return StartCoroutine(ExecuteMovementTaskWithMonitoring(task as MovementTask));
                         break;
-
                     case TaskType.Gripper:
-                        GripperTask gripperTask = task as GripperTask;
-                        if (gripperTask != null)
-                        {
-                            if (gripperTask.actionType == GripperActionType.Open)
-                            {
-                                Debug.Log("Opening gripper");
-                                yield return StartCoroutine(gripperController.OpenGripperAndWait());
-                            }
-                            else if (gripperTask.actionType == GripperActionType.Close)
-                            {
-                                Debug.Log("Closing gripper");
-                                yield return StartCoroutine(gripperController.CloseGripperAndWait());
-                            }
-                        }
-                        else
-                        {
-                            Debug.LogError($"Task {i + 1} is Gripper type but failed to cast.");
-                        }
-                        break;
-
-                    default:
-                        Debug.LogWarning($"Unknown task type encountered: {task.taskType}");
+                        yield return StartCoroutine(ExecuteGripperTaskWithSafety(task as GripperTask));
                         break;
                 }
 
                 if (task.delayAfterAction > 0)
-                {
-                    Debug.Log($"Waiting for {task.delayAfterAction} seconds");
                     yield return new WaitForSeconds(task.delayAfterAction);
-                }
             }
 
-            Debug.Log($"Sequence {sequenceToExecute.name} completed");
-
+            Debug.Log($"Sequence '{sequence.name}' completed");
             if (repeatSequence)
-            {
-                Debug.Log($"Repeating task sequence: {sequenceToExecute.name}");
-            }
-
-        } while (repeatSequence);
+                Debug.Log("Repeating sequence");
+        }
+        while (repeatSequence);
 
         isExecuting = false;
     }
 
-    /// <summary>
-    /// Coroutine that moves the target object to the specified position
-    /// </summary>
-    private IEnumerator MoveToPosition(Vector3 targetPosition)
+    // --- Movement with continuous joint-monitoring & mid-move abort ---
+    private IEnumerator MoveToPositionUntilJointLoss(Vector3 targetPos)
     {
-        Vector3 smoothVelocity = Vector3.zero;
-        Vector3 velocityRef = Vector3.zero;
-        Vector3 startPosition = targetObject.transform.position;
-        float totalDistance = Vector3.Distance(startPosition, targetPosition);
+        Vector3 vel = Vector3.zero, velRef = Vector3.zero;
 
-        if (totalDistance < 0.001f)
+        if (Vector3.Distance(targetObject.transform.position, targetPos) < 0.01f)
         {
-            targetObject.transform.position = targetPosition;
+            targetObject.transform.position = targetPos;
             yield break;
         }
 
-        while (Vector3.Distance(targetObject.transform.position, targetPosition) > 0.01f)
+        while (Vector3.Distance(targetObject.transform.position, targetPos) > 0.01f)
         {
-            Vector3 attractionDirection = (targetPosition - targetObject.transform.position).normalized;
-            Vector3 attractionForce = attractionDirection * attractionStrength;
+            if (!AreEnoughJointsDetected())
+                yield break;  // abort if joints drop
 
-            Vector3 repulsionForce = CalculateRepulsionForce();
+            Vector3 dir = (targetPos - targetObject.transform.position).normalized;
+            Vector3 force = dir * attractionStrength + CalculateRepulsionForce();
+            Vector3 rawVel = force * movementSpeed;
+            vel = Vector3.SmoothDamp(vel, rawVel, ref velRef, movementSmoothTime);
+            targetObject.transform.position += vel * Time.deltaTime;
 
-            // 3. Combine Forces
-            Vector3 totalForce = attractionForce + repulsionForce;
-
-            // 4. Compute raw velocity
-            Vector3 rawVelocity = totalForce * movementSpeed;
-            // 5. Smooth velocity
-            smoothVelocity = Vector3.SmoothDamp(smoothVelocity, rawVelocity, ref velocityRef, movementSmoothTime);
-            // 6. Apply smoothed movement
-            targetObject.transform.position += smoothVelocity * Time.deltaTime;
-
-            yield return null; // Wait for the next frame
+            yield return null;
         }
 
-        targetObject.transform.position = targetPosition;
+        targetObject.transform.position = targetPos;
     }
 
-    /// <summary>
-    /// Calculates the combined repulsion force from nearby active obstacles (Nuitrack joints).
-    /// </summary>
-    private Vector3 CalculateRepulsionForce()
+    private IEnumerator ExecuteMovementTaskWithMonitoring(MovementTask moveTask)
     {
-        Vector3 totalRepulsion = Vector3.zero;
-
-        if (nativeAvatar == null || nativeAvatar.CreatedJoint == null)
+        bool done = false;
+        while (!done)
         {
-            return totalRepulsion;
+            // pre-check
+            if (!AreEnoughJointsDetected())
+            {
+                if (!isAtDefaultPositionDueToLostJoints)
+                {
+                    Debug.LogWarning($"Joints lost before movement. Going to default {defaultPosition}");
+                    yield return StartCoroutine(MoveToPosition(defaultPosition));
+                    isAtDefaultPositionDueToLostJoints = true;
+                }
+                yield return new WaitUntil(AreEnoughJointsDetected);
+                Debug.Log("Joints regained. Resuming movement.");
+                isAtDefaultPositionDueToLostJoints = false;
+                yield return new WaitForSeconds(0.2f);
+            }
+
+            // attempt move
+            yield return StartCoroutine(MoveToPositionUntilJointLoss(moveTask.targetPosition));
+
+            if (Vector3.Distance(targetObject.transform.position, moveTask.targetPosition) < 0.01f)
+            {
+                done = true;
+                Debug.Log($"Reached {moveTask.targetPosition}");
+            }
+            else
+            {
+                Debug.LogWarning("Movement interrupted. Retrying.");
+            }
+        }
+    }
+
+    // --- Gripper only pre-checks, no mid-action abort ---
+    private IEnumerator ExecuteGripperTaskWithSafety(GripperTask gripTask)
+    {
+        // ensure joints present
+        if (!AreEnoughJointsDetected())
+        {
+            if (!isAtDefaultPositionDueToLostJoints)
+            {
+                Debug.LogWarning($"Joints lost before gripper action. Going to default {defaultPosition}");
+                yield return StartCoroutine(MoveToPosition(defaultPosition));
+                isAtDefaultPositionDueToLostJoints = true;
+            }
+            yield return new WaitUntil(AreEnoughJointsDetected);
+            Debug.Log("Joints regained. Performing gripper action.");
+            isAtDefaultPositionDueToLostJoints = false;
+            yield return new WaitForSeconds(0.2f);
         }
 
-        foreach (GameObject jointObject in nativeAvatar.CreatedJoint)
+        // perform gripper (atomic)
+        if (gripTask.actionType == GripperActionType.Open)
+            yield return StartCoroutine(gripperController.OpenGripperAndWait());
+        else
+            yield return StartCoroutine(gripperController.CloseGripperAndWait());
+
+        Debug.Log($"Gripper {gripTask.actionType} complete.");
+    }
+
+    private Vector3 CalculateRepulsionForce()
+    {
+        Vector3 total = Vector3.zero;
+        if (nativeAvatar?.CreatedJoint == null) return total;
+
+        foreach (var joint in nativeAvatar.CreatedJoint)
         {
-            if (jointObject != null && jointObject.activeSelf)
+            if (joint != null && joint.activeSelf)
             {
-                Transform obstacle = jointObject.transform;
-                float distance = Vector3.Distance(targetObject.transform.position, obstacle.position);
-
-                float influenceRange = minDistanceToObstacle * 2.0f;
-
-                if (distance < influenceRange && distance > 0.001f)
+                float dist = Vector3.Distance(targetObject.transform.position, joint.transform.position);
+                float range = minDistanceToObstacle * 2f;
+                if (dist < range && dist > 0.001f)
                 {
-                    Vector3 repulsionDirection = (targetObject.transform.position - obstacle.position).normalized;
-
-                    float repulsionMagnitude = repulsionStrength * (1.0f - (distance / influenceRange));
-                    
-                    // Add to total repulsion
-                    totalRepulsion += repulsionDirection * repulsionMagnitude;
+                    Vector3 dir = (targetObject.transform.position - joint.transform.position).normalized;
+                    float mag = repulsionStrength * (1f - dist / range);
+                    total += dir * mag;
                 }
             }
         }
-
-
-        return totalRepulsion;
+        return total;
     }
-    /// <summary>
-    /// Adds a new Movement task to the sequence at runtime
-    /// </summary>
+
+    // original MoveToPosition (used for default returns)
+    private IEnumerator MoveToPosition(Vector3 targetPos)
+    {
+        Vector3 vel = Vector3.zero, velRef = Vector3.zero;
+
+        if (Vector3.Distance(targetObject.transform.position, targetPos) < 0.001f)
+        {
+            targetObject.transform.position = targetPos;
+            yield break;
+        }
+
+        while (Vector3.Distance(targetObject.transform.position, targetPos) > 0.01f)
+        {
+            Vector3 dir = (targetPos - targetObject.transform.position).normalized;
+            Vector3 force = dir * attractionStrength + CalculateRepulsionForce();
+            Vector3 rawVel = force * movementSpeed;
+            vel = Vector3.SmoothDamp(vel, rawVel, ref velRef, movementSmoothTime);
+            targetObject.transform.position += vel * Time.deltaTime;
+            yield return null;
+        }
+
+        targetObject.transform.position = targetPos;
+    }
+
+    // Utility joint checks
+    private bool AreEnoughJointsDetected() => CountDetectedJoints() >= minRequiredJoints;
+
+    private int CountDetectedJoints()
+    {
+        if (nativeAvatar == null)
+        {
+            Debug.LogWarning("NativeAvatar missing; assuming joints OK.");
+            return minRequiredJoints;
+        }
+        if (nativeAvatar.CreatedJoint == null || nativeAvatar.CreatedJoint.Length == 0)
+            return 0;
+
+        int count = 0;
+        foreach (var joint in nativeAvatar.CreatedJoint)
+            if (joint != null && joint.activeSelf) count++;
+        return count;
+    }
+
+    // Runtime task editing & utilities
+
     public void AddMovementTask(Vector3 position, float delay = 0.5f)
     {
         if (activeTaskSequence == null)
@@ -487,16 +409,12 @@ public class TaskProgrammer : MonoBehaviour
             return;
         }
         activeTaskSequence.tasks.Add(new MovementTask(position, delay));
-
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
-        #endif
+#endif
         Debug.Log($"Added Movement Task to sequence: {activeTaskSequence.name}");
     }
 
-    /// <summary>
-    /// Adds a new Gripper task to the sequence at runtime
-    /// </summary>
     public void AddGripperTask(GripperActionType action, float delay = 0.5f)
     {
         if (activeTaskSequence == null)
@@ -505,101 +423,52 @@ public class TaskProgrammer : MonoBehaviour
             return;
         }
         activeTaskSequence.tasks.Add(new GripperTask(action, delay));
-
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
-        #endif
+#endif
         Debug.Log($"Added Gripper Task to sequence: {activeTaskSequence.name}");
     }
 
-    /// <summary>
-    /// Update method to continuously save tasks at regular intervals
-    /// </summary>
-    /// <summary>
-    /// Clears all tasks from the sequence
-    /// </summary>
     public void ClearTasks()
     {
         if (activeTaskSequence != null)
         {
             activeTaskSequence.tasks.Clear();
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
-            #endif
+#endif
             Debug.Log($"Cleared tasks from sequence: {activeTaskSequence.name}");
         }
-        else
-        {
-            Debug.LogWarning("Cannot clear tasks: No active task sequence assigned.");
-        }
+        else Debug.LogWarning("Cannot clear tasks: No active task sequence assigned.");
     }
 
-    /// <summary>
-    /// Sets whether the sequence should repeat
-    /// </summary>
     public void SetRepeat(bool repeat)
     {
         repeatSequence = repeat;
         Debug.Log($"Repeat sequence set to: {repeat}");
     }
 
-    /// <summary>
-    /// Gets the current task count
-    /// </summary>
-    public int GetTaskCount()
-    {
-        return activeTaskSequence != null ? activeTaskSequence.tasks.Count : 0;
-    }
+    public int GetTaskCount() => activeTaskSequence != null ? activeTaskSequence.tasks.Count : 0;
 
-    /// <summary>
-    /// Checks if tasks are currently executing
-    /// </summary>
-    public bool IsExecuting()
-    {
-        return isExecuting;
-    }
+    public bool IsExecuting() => isExecuting;
 
-    /// <summary>
-    /// Checks if the UDPCOMM connection is established
-    /// </summary>
-    public bool IsUdpConnected()
-    {
-        if (udpCommComponent == null)
-        {
-            return false;
-        }
-        return isUdpConnected && udpCommComponent.IsConnectionEstablished;
-    }
+    public bool IsUdpConnected() => udpCommComponent != null && isUdpConnected && udpCommComponent.IsConnectionEstablished;
 
-    /// <summary>
-    /// Saves the current position of the target object as a new task in the active sequence.
-    /// This method is intended to be called by a UI button or other runtime logic.
-    /// </summary>
     public void SaveCurrentPositionAsTask()
     {
-        if (targetObject == null)
+        if (targetObject == null || activeTaskSequence == null)
         {
-            Debug.LogError("Cannot save position: Target object is missing!");
+            Debug.LogError("Cannot save position as task: missing references.");
             return;
         }
-        if (activeTaskSequence == null)
-        {
-            Debug.LogError("Cannot save position as task: No active task sequence assigned.");
-            return;
-        }
-
-        Vector3 currentPosition = targetObject.transform.position;
-        activeTaskSequence.tasks.Add(new MovementTask(currentPosition));
-
-        #if UNITY_EDITOR
+        var pos = targetObject.transform.position;
+        activeTaskSequence.tasks.Add(new MovementTask(pos));
+#if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
-        #endif
-        Debug.Log($"Saved current position {currentPosition} as a Movement Task in sequence {activeTaskSequence.name}");
+#endif
+        Debug.Log($"Saved current position {pos} as Movement Task in {activeTaskSequence.name}");
     }
 
-    /// <summary>
-    /// Removes the last task added to the active sequence.
-    /// </summary>
     public void RemoveLastTask()
     {
         if (activeTaskSequence == null)
@@ -607,86 +476,36 @@ public class TaskProgrammer : MonoBehaviour
             Debug.LogError("Cannot remove task: No active task sequence assigned.");
             return;
         }
-
         if (activeTaskSequence.tasks.Count > 0)
         {
-            int lastIndex = activeTaskSequence.tasks.Count - 1;
-            BaseTask removedTask = activeTaskSequence.tasks[lastIndex];
-            activeTaskSequence.tasks.RemoveAt(lastIndex);
-
-            #if UNITY_EDITOR
+            var idx = activeTaskSequence.tasks.Count - 1;
+            var removed = activeTaskSequence.tasks[idx];
+            activeTaskSequence.tasks.RemoveAt(idx);
+#if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(activeTaskSequence);
-            #endif
-            Debug.Log($"Removed last task (Type: {removedTask.taskType}) from sequence {activeTaskSequence.name}. Remaining tasks: {activeTaskSequence.tasks.Count}");
+#endif
+            Debug.Log($"Removed last task (Type: {removed.taskType}) from {activeTaskSequence.name}. Remaining: {activeTaskSequence.tasks.Count}");
         }
-        else
-        {
-            Debug.LogWarning($"Cannot remove task: Sequence '{activeTaskSequence.name}' is already empty.");
-        }
+        else Debug.LogWarning($"Cannot remove task: Sequence '{activeTaskSequence.name}' is already empty.");
     }
- 
-    /// <summary>
-    /// Draws Gizmos in the Scene view for debugging obstacle avoidance ranges.
-    /// </summary>
+
     private void OnDrawGizmos()
     {
         if (targetObject != null)
         {
-            Gizmos.color = Color.yellow; // Color for the target's safe zone
+            Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(targetObject.transform.position, minDistanceToObstacle);
         }
 
         if (nativeAvatar != null && nativeAvatar.CreatedJoint != null)
         {
-            Gizmos.color = Color.red; // Color for the obstacles' influence zone
-            float influenceRange = minDistanceToObstacle * 2.0f;
-
-            foreach (GameObject jointObject in nativeAvatar.CreatedJoint)
+            Gizmos.color = Color.red;
+            float influenceRange = minDistanceToObstacle * 2f;
+            foreach (var joint in nativeAvatar.CreatedJoint)
             {
-                if (jointObject != null && jointObject.activeSelf)
-                {
-                    Gizmos.DrawWireSphere(jointObject.transform.position, influenceRange);
-                }
+                if (joint != null && joint.activeSelf)
+                    Gizmos.DrawWireSphere(joint.transform.position, influenceRange);
             }
         }
-    }
-    /// <summary>
-    /// Checks if at least the minimum required number of Nuitrack joints are currently detected and active.
-    /// </summary>
-    /// <returns>True if enough joints are detected, false otherwise.</returns>
-    private bool AreEnoughJointsDetected()
-    {
-        return CountDetectedJoints() >= minRequiredJoints;
-    }
-
-    /// <summary>
-    /// Counts the number of currently detected and active Nuitrack joints.
-    /// </summary>
-    /// <returns>The number of active joints.</returns>
-    private int CountDetectedJoints()
-    {
-        if (nativeAvatar == null)
-        {
-            Debug.LogWarning("NativeAvatar reference is missing in TaskProgrammer. Cannot check joint status. Assuming OK.");
-            return minRequiredJoints; // Assume OK if avatar not linked
-        }
-
-        if (nativeAvatar.CreatedJoint == null || nativeAvatar.CreatedJoint.Length == 0)
-        {
-            // If NativeAvatar exists but hasn't initialized joints or has none configured, treat as 0 detected.
-            // Or, if minRequiredJoints is 0, this state is acceptable.
-            return 0;
-        }
-
-        int detectedCount = 0;
-        foreach (GameObject jointObject in nativeAvatar.CreatedJoint)
-        {
-            // Check if the joint GameObject exists and is currently active in the hierarchy
-            if (jointObject != null && jointObject.activeSelf)
-            {
-                detectedCount++;
-            }
-        }
-        return detectedCount;
     }
 }
