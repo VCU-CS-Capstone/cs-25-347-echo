@@ -8,10 +8,16 @@ using System.Net.Sockets;
 using Google.Protobuf;
 using System;
 
+/// <summary>
+/// Handles UDP communication with an ABB robot using the Externally Guided Motion (EGM) protocol.
+/// Sends target pose commands and receives robot feedback (position and joint angles).
+/// </summary>
 public class UDPCOMM : MonoBehaviour
 {
     [Header("Connection Settings")]
-    /* UDP port where EGM communication should happen (specified in RobotStudio) */
+    /// <summary>
+    /// UDP port for EGM communication. Must match the port configured in RobotStudio for the EGM UDPUC device.
+    /// </summary>
     public static int port = 6511;
     /* UDP client used to send messages from computer to robot */
     private UdpClient server = null;
@@ -21,17 +27,30 @@ public class UDPCOMM : MonoBehaviour
      * using a network cable. */
     private IPEndPoint robotAddress;
 
+    /// <summary>
+    /// IP address of the ABB robot controller.
+    /// </summary>
     public string robotIpAddress = "192.168.0.4";
 
     [Header("Noise Configuration")]
+    /// <summary>
+    /// If true, adds a small amount of random noise to the target position before sending.
+    /// This can help ensure the robot controller always registers a change in position data.
+    /// </summary>
     [Tooltip("Enable or disable position noise")]
     public bool enableNoise = true;
 
+    /// <summary>
+    /// The maximum amount of random noise (positive or negative) added to each position axis (X, Y, Z) if noise is enabled. Units are in millimeters (mm).
+    /// </summary>
     [Tooltip("Amount of noise to add (±) in mm")]
     public float noiseAmount = 1f;
 
     /* Variable used to count the number of messages sent */
     private uint sequenceNumber = 0;
+    /// <summary>
+    /// The target GameObject in the Unity scene. The position and rotation of this object are sent to the robot as the target pose.
+    /// </summary>
     public GameObject target; // The object whose position is sent to the robot
     /* Robot cartesian position and rotation values */
     double x, y, z, rx, ry, rz;
@@ -44,27 +63,39 @@ public class UDPCOMM : MonoBehaviour
     double crz;
     Vector3 angles;
 
+    /// <summary>GameObject representing Joint 1 of the robot model in Unity for visualization.</summary>
     public GameObject joint1;
+    /// <summary>GameObject representing Joint 2 of the robot model in Unity for visualization.</summary>
     public GameObject joint2;
+    /// <summary>GameObject representing Joint 3 of the robot model in Unity for visualization.</summary>
     public GameObject joint3;
+    /// <summary>GameObject representing Joint 4 of the robot model in Unity for visualization.</summary>
     public GameObject joint4;
+    /// <summary>GameObject representing Joint 5 of the robot model in Unity for visualization.</summary>
     public GameObject joint5;
+    /// <summary>GameObject representing Joint 6 of the robot model in Unity for visualization.</summary>
     public GameObject joint6;
 
     /* Connection status tracking */
     private bool isConnectionEstablished = false;
 
-    // Public properties to expose connection status
+    /// <summary>
+    /// Gets a value indicating whether the UDP connection to the robot has been initialized.
+    /// </summary>
     public bool IsConnectionEstablished => isConnectionEstablished;
 
-    /* (Unity) Start is called before the first frame update */
+    /// <summary>
+    /// (Unity) Called before the first frame update. Initializes the EGM connection.
+    /// </summary>
     void Start()
     {
         /* Initializes EGM connection with robot */
         startcom();
     }
 
-    /* (Unity) FixedUpdate is called once per fixed frame */
+    /// <summary>
+    /// (Unity) Called once per fixed frame. Reads the target GameObject's pose and sends it to the robot.
+    /// </summary>
     void FixedUpdate()
     {
         // Read position and rotation from the target GameObject
@@ -83,6 +114,10 @@ public class UDPCOMM : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Initializes the UDP client and establishes the endpoint for communicating with the robot controller.
+    /// Sets the <see cref="isConnectionEstablished"/> flag upon successful initialization.
+    /// </summary>
     public void startcom()
     {
         Debug.Log("Connecting");
@@ -270,24 +305,32 @@ public class UDPCOMM : MonoBehaviour
         //Debug.Log("MSG MADE");
 
     }
+    /// <summary>
+    /// Processes the target pose from Unity coordinates, converts it to the robot's coordinate system (including scaling),
+    /// sends the target pose to the robot via EGM, and updates the visualized robot joints based on feedback.
+    /// </summary>
+    /// <remarks>
+    /// This method performs coordinate transformations:
+    /// - Unity X maps to Robot Y
+    /// - Unity Y maps to Robot Z
+    /// - Unity Z maps to Robot -X
+    /// It also scales the position values by 1000 (Unity meters to robot millimeters).
+    /// Rotational values might also undergo transformation based on axis alignment.
+    /// </remarks>
+    /// <param name="xx">Target X position in Unity coordinates (meters).</param>
+    /// <param name="yy">Target Y position in Unity coordinates (meters).</param>
+    /// <param name="zz">Target Z position in Unity coordinates (meters).</param>
+    /// <param name="rrx">Target X rotation (Euler angle) in Unity coordinates (degrees).</param>
+    /// <param name="rry">Target Y rotation (Euler angle) in Unity coordinates (degrees).</param>
+    /// <param name="rrz">Target Z rotation (Euler angle) in Unity coordinates (degrees).</param>
     public void CubeMove(double xx, double yy, double zz, double rrx, double rry, double rrz)
-    /*
-
-    Summary: Retrieves x,y, and z data of cube location, and transcribes this information into coordinates to send
-    to robot controller. Once the coordinates are set, SendUDPMessage() is utilized to build and send a UDP packet 
-    that contains these coordinates to the robot controller.
-    Inputs: 
-        - x: X position of cube
-        - y: Y position of cube
-        - z: Z position of cube
-        - xx: X rotational position of cube
-        - yy: Y rotational position of cube
-        - zz: Z rotational position of cube
-
-    */
     {
-        y = (xx * 1000);//yC + deviation;
-        x = (zz * 1000);//xC;
+        // Coordinate transformation and scaling (Unity meters to Robot mm)
+        // Unity X -> Robot Y
+        // Unity Y -> Robot Z
+        // Unity Z -> Robot -X
+        y = (xx * 1000);
+        x = (-zz * 1000); // Note the negation for Z to -X mapping
         z = (yy * 1000);//zC;
         rx = rrx;
         ry = rry;

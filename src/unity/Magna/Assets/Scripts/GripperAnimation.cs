@@ -2,33 +2,53 @@ using UnityEngine;
 using System.Collections;
 
 /// <summary>
-/// Example script demonstrating how to use the GripperController
+/// Example script demonstrating how to use the <see cref="GripperController"/>.
+/// Provides public methods to trigger gripper actions and includes example keyboard controls.
 /// </summary>
 public class GripperAnimation : MonoBehaviour
 {
+    [Tooltip("Reference to the GripperController component.")]
     [SerializeField] private GripperController gripperController;
-    
-    // Example method to demonstrate gripper usage
+
+    /// <summary>
+    /// Starts the example gripper demonstration sequence coroutine.
+    /// </summary>
     public void DemonstrateGripper()
     {
         StartCoroutine(GripperDemonstration());
     }
-    
-    // Example method that can be called from another script
+
+    /// <summary>
+    /// Coroutine wrapper to open the gripper using the referenced <see cref="GripperController"/>.
+    /// Waits for the action to complete.
+    /// </summary>
+    /// <returns>IEnumerator for use in StartCoroutine.</returns>
     public IEnumerator OpenGripper()
     {
+        if (gripperController == null) { Debug.LogError("GripperController reference missing!"); yield break; }
         yield return StartCoroutine(gripperController.OpenGripperAndWait());
     }
-    
-    // Example method that can be called from another script
+
+    /// <summary>
+    /// Coroutine wrapper to close the gripper using the referenced <see cref="GripperController"/>.
+    /// Waits for the action to complete.
+    /// </summary>
+    /// <returns>IEnumerator for use in StartCoroutine.</returns>
     public IEnumerator CloseGripper()
     {
+        if (gripperController == null) { Debug.LogError("GripperController reference missing!"); yield break; }
         yield return StartCoroutine(gripperController.CloseGripperAndWait());
     }
-    
-    // Example method that can be called from another script
+
+    /// <summary>
+    /// Coroutine wrapper to move the gripper to a specific width using the referenced <see cref="GripperController"/>.
+    /// Waits for the action to complete.
+    /// </summary>
+    /// <param name="widthInMm">Target width in millimeters.</param>
+    /// <returns>IEnumerator for use in StartCoroutine.</returns>
     public IEnumerator MoveGripperToPosition(float widthInMm)
     {
+        if (gripperController == null) { Debug.LogError("GripperController reference missing!"); yield break; }
         // Convert mm to 1/10 mm (the unit used by the gripper)
         int widthIn10thMm = Mathf.RoundToInt(widthInMm * 10);
         yield return StartCoroutine(gripperController.MoveGripperAndWait(widthIn10thMm));

@@ -2,41 +2,78 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Defines the type of action a task represents.
+/// </summary>
 public enum TaskType
 {
+    /// <summary>A task involving robot arm movement to a target position.</summary>
     Movement,
+    /// <summary>A task involving controlling the robot's gripper.</summary>
     Gripper
 }
 
+/// <summary>
+/// Defines the specific action for a Gripper task.
+/// </summary>
 public enum GripperActionType
 {
+    /// <summary>Instructs the gripper to open.</summary>
     Open,
+    /// <summary>Instructs the gripper to close.</summary>
     Close
 }
 
+/// <summary>
+/// Base abstract class for all tasks within a sequence.
+/// </summary>
 [System.Serializable]
 public abstract class BaseTask
 {
+    /// <summary>
+    /// The type of this task (Movement or Gripper).
+    /// </summary>
     public TaskType taskType;
 
+    /// <summary>
+    /// Delay in seconds to wait after this task completes before starting the next one.
+    /// </summary>
     [Header("Timing")]
     [Tooltip("Delay in seconds after completing this task")]
     public float delayAfterAction = 0.5f;
 
+    /// <summary>
+    /// Base constructor for tasks.
+    /// </summary>
+    /// <param name="type">The type of the task.</param>
     protected BaseTask(TaskType type)
     {
         taskType = type;
     }
 }
 
+/// <summary>
+/// Represents a task that moves the robot's target object to a specific position.
+/// </summary>
 [System.Serializable]
 public class MovementTask : BaseTask
 {
+    /// <summary>
+    /// The target position in world coordinates for the movement task.
+    /// </summary>
     [Header("Movement")]
     public Vector3 targetPosition;
 
+    /// <summary>
+    /// Default constructor for MovementTask. Sets task type to Movement.
+    /// </summary>
     public MovementTask() : base(TaskType.Movement) { }
 
+    /// <summary>
+    /// Creates a new MovementTask.
+    /// </summary>
+    /// <param name="position">The target world position.</param>
+    /// <param name="delay">Delay in seconds after reaching the target.</param>
     public MovementTask(Vector3 position, float delay = 0.5f) : base(TaskType.Movement)
     {
         targetPosition = position;
@@ -44,14 +81,28 @@ public class MovementTask : BaseTask
     }
 }
 
+/// <summary>
+/// Represents a task that performs an action with the robot's gripper.
+/// </summary>
 [System.Serializable]
 public class GripperTask : BaseTask
 {
+    /// <summary>
+    /// The specific action (Open or Close) for the gripper.
+    /// </summary>
     [Header("Gripper Action")]
     public GripperActionType actionType;
 
+    /// <summary>
+    /// Default constructor for GripperTask. Sets task type to Gripper.
+    /// </summary>
     public GripperTask() : base(TaskType.Gripper) { }
 
+    /// <summary>
+    /// Creates a new GripperTask.
+    /// </summary>
+    /// <param name="action">The gripper action (Open or Close).</param>
+    /// <param name="delay">Delay in seconds after the gripper action completes.</param>
     public GripperTask(GripperActionType action, float delay = 0.5f) : base(TaskType.Gripper)
     {
         actionType = action;
@@ -59,6 +110,10 @@ public class GripperTask : BaseTask
     }
 }
 
+/// <summary>
+/// Manages the execution of predefined task sequences for controlling the robot.
+/// Handles movement, gripper actions, safety checks (skeleton detection), and communication status.
+/// </summary>
 public class TaskProgrammer : MonoBehaviour
 {
     [System.Serializable]
@@ -106,10 +161,16 @@ public class TaskProgrammer : MonoBehaviour
     private bool isUdpConnected = false;
     private bool isAtDefaultPositionDueToLostSkeleton = false;
 
+    /// <summary>Singleton instance of the TaskProgrammer.</summary>
     public static TaskProgrammer Instance { get; private set; }
+    /// <summary>Gets the target GameObject controlled by this programmer.</summary>
     public GameObject GetTargetObject() => targetObject;
+    /// <summary>Gets the currently active TaskSequenceSO asset.</summary>
     public TaskSequenceSO GetActiveSequence() => activeTaskSequence;
 
+    /// <summary>
+    /// (Unity) Called when the script instance is being loaded. Initializes the singleton instance.
+    /// </summary>
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -117,6 +178,9 @@ public class TaskProgrammer : MonoBehaviour
             Debug.LogWarning("Multiple TaskProgrammer instances detected. Only using the first one.");
     }
 
+    /// <summary>
+    /// (Unity) Called before the first frame update. Validates references and starts the connection waiting coroutine.
+    /// </summary>
     private void Start()
     {
         if (targetObject == null)
@@ -181,6 +245,10 @@ public class TaskProgrammer : MonoBehaviour
             ExecuteTasks();
     }
 
+    /// <summary>
+    /// Starts the execution of the currently assigned <see cref="activeTaskSequence"/>.
+    /// If not connected, it will attempt to connect first.
+    /// </summary>
     public void ExecuteTasks()
     {
         if (activeTaskSequence == null || activeTaskSequence.tasks.Count == 0)
@@ -201,9 +269,12 @@ public class TaskProgrammer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Stops the currently running task sequence execution.
+    /// </summary>
     public void StopExecution()
     {
-        StopAllCoroutines();
+        StopAllCoroutines(); // Stops movement and sequence coroutines
         isExecuting = false;
         Debug.Log("Task execution stopped");
     }
@@ -397,6 +468,11 @@ public class TaskProgrammer : MonoBehaviour
 
     // Runtime task editing & utilities
 
+    /// <summary>
+    /// Adds a new MovementTask to the end of the active task sequence.
+    /// </summary>
+    /// <param name="position">The target world position for the movement.</param>
+    /// <param name="delay">Delay in seconds after this task completes.</param>
     public void AddMovementTask(Vector3 position, float delay = 0.5f)
     {
         if (activeTaskSequence == null)
@@ -411,6 +487,11 @@ public class TaskProgrammer : MonoBehaviour
         Debug.Log($"Added Movement Task to sequence: {activeTaskSequence.name}");
     }
 
+    /// <summary>
+    /// Adds a new GripperTask to the end of the active task sequence.
+    /// </summary>
+    /// <param name="action">The gripper action (Open or Close).</param>
+    /// <param name="delay">Delay in seconds after this task completes.</param>
     public void AddGripperTask(GripperActionType action, float delay = 0.5f)
     {
         if (activeTaskSequence == null)
@@ -425,6 +506,9 @@ public class TaskProgrammer : MonoBehaviour
         Debug.Log($"Added Gripper Task to sequence: {activeTaskSequence.name}");
     }
 
+    /// <summary>
+    /// Removes all tasks from the currently active task sequence.
+    /// </summary>
     public void ClearTasks()
     {
         if (activeTaskSequence != null)
@@ -438,18 +522,31 @@ public class TaskProgrammer : MonoBehaviour
         else Debug.LogWarning("Cannot clear tasks: No active task sequence assigned.");
     }
 
+    /// <summary>
+    /// Sets whether the active task sequence should repeat after completion.
+    /// </summary>
+    /// <param name="repeat">True to enable repeating, false otherwise.</param>
     public void SetRepeat(bool repeat)
     {
         repeatSequence = repeat;
         Debug.Log($"Repeat sequence set to: {repeat}");
     }
 
+    /// <summary>Gets the number of tasks in the active sequence.</summary>
+    /// <returns>The task count, or 0 if no sequence is active.</returns>
     public int GetTaskCount() => activeTaskSequence != null ? activeTaskSequence.tasks.Count : 0;
 
+    /// <summary>Checks if a task sequence is currently being executed.</summary>
+    /// <returns>True if executing, false otherwise.</returns>
     public bool IsExecuting() => isExecuting;
 
+    /// <summary>Checks if the UDP connection to the robot is established and active.</summary>
+    /// <returns>True if connected, false otherwise.</returns>
     public bool IsUdpConnected() => udpCommComponent != null && isUdpConnected && udpCommComponent.IsConnectionEstablished;
 
+    /// <summary>
+    /// Adds a new MovementTask to the sequence using the current position of the target object.
+    /// </summary>
     public void SaveCurrentPositionAsTask()
     {
         if (targetObject == null || activeTaskSequence == null)
@@ -465,6 +562,9 @@ public class TaskProgrammer : MonoBehaviour
         Debug.Log($"Saved current position {pos} as Movement Task in {activeTaskSequence.name}");
     }
 
+    /// <summary>
+    /// Removes the last task added to the active task sequence.
+    /// </summary>
     public void RemoveLastTask()
     {
         if (activeTaskSequence == null)
