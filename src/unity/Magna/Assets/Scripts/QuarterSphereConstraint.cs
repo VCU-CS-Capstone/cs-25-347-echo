@@ -2,20 +2,39 @@ using UnityEngine;
 using System.Collections.Generic;
 
 [ExecuteAlways]
+/// <summary>
+/// Constrains the position of a target Transform to remain within a boundary
+/// shaped like a quarter of an ellipsoid, defined in this component's local space.
+/// The boundary is defined by ellipsoid radii and two cutting planes.
+/// Runs in the editor due to [ExecuteAlways].
+/// </summary>
 public class QuarterSphereConstraint : MonoBehaviour
 {
+    /// <summary>
+    /// Defines the size of the ellipsoid boundary along each local axis (X, Y, Z).
+    /// </summary>
     [Header("Boundary Shape")]
     [Tooltip("Semi‑axes of the ellipsoid (radius along each local axis).")]
     public Vector3 radii = new Vector3(1f, 1f, 1f);
+    /// <summary>
+    /// Defines the lower boundary plane in local Y coordinates. The target cannot go below this value.
+    /// </summary>
     [Tooltip("Forbid any point with local Y < this value.")]
     public float cutPlaneY = 0f;
+    /// <summary>
+    /// Defines the upper boundary plane in local Z coordinates. The target cannot go above this value.
+    /// </summary>
     [Tooltip("Forbid any point with local Z > this value.")]
     public float cutPlaneZ = 0f;
 
+    /// <summary>
+    /// The Transform whose world position will be constrained within the defined boundary.
+    /// </summary>
     [Header("Constraint Target")]
     [Tooltip("The Transform to clamp inside this quarter‑ellipsoid.")]
     public Transform target;
 
+    // Ensures the constraint is applied after all other position updates.
     void LateUpdate()
     {
         if (target == null) return;

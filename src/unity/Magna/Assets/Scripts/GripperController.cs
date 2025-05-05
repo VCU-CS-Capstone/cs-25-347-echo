@@ -5,12 +5,24 @@ using System.Collections;
 // Add the EasyModbusTCP.dll to your Assets/Plugins folder
 // If using Unity Package Manager, install it via NuGet
 
+/// <summary>
+/// Controls an OnRobot RG2 or RG6 gripper using Modbus TCP communication via the EasyModbus library.
+/// Provides methods for opening, closing, setting width, and checking status.
+/// </summary>
+/// <remarks>
+/// Requires the EasyModbusTCP library (DLL) to be present in the project (e.g., in Assets/Plugins).
+/// Ensure the gripper's IP address and Modbus port (usually 502) are correctly configured.
+/// </remarks>
 public class GripperController : MonoBehaviour
 {
     [Header("Gripper Configuration")]
+    [Tooltip("Type of the OnRobot gripper ('rg2' or 'rg6'). Determines max width/force.")]
     [SerializeField] private string gripperType = "rg6"; // "rg2" or "rg6"
+    [Tooltip("IP address of the gripper's Modbus TCP server.")]
     [SerializeField] private string ipAddress = "192.168.1.1";
+    [Tooltip("Port number for Modbus TCP communication (default is 502).")]
     [SerializeField] private int port = 502;
+    [Tooltip("Default force applied during gripper actions if not specified (in 1/10 Newtons).")]
     [SerializeField] private int defaultForce = 400; // Default force in 1/10 Newtons
 
     // Internal variables
@@ -104,9 +116,10 @@ public class GripperController : MonoBehaviour
     }
 
     /// <summary>
-    /// Checks if the gripper is currently busy (moving)
+    /// Checks if the gripper is currently busy executing a command (moving).
+    /// Reads the status register via Modbus and checks the busy flag.
     /// </summary>
-    /// <returns>True if the gripper is busy</returns>
+    /// <returns>True if the gripper is busy, false otherwise or if communication fails.</returns>
     public bool IsGripperBusy()
     {
         if (!client.Connected && !OpenConnection())
@@ -139,11 +152,11 @@ public class GripperController : MonoBehaviour
     /// <summary>
     /// Opens the gripper fully
     /// </summary>
-    /// <param name="force">Force to apply in 1/10 Newtons</param>
-    /// <returns>True if the command was sent successfully</returns>
+    /// <param name="force">Force to apply during the open action (in 1/10 Newtons). Uses defaultForce if negative.</param>
+    /// <returns>True if the command was successfully sent via Modbus, false otherwise.</returns>
     public bool OpenGripper(int force = -1)
     {
-        if (force < 0) force = defaultForce;
+        if (force < 0) force = defaultForce; // Use default if not specified
 
         if (!client.Connected && !OpenConnection())
         {
@@ -172,11 +185,11 @@ public class GripperController : MonoBehaviour
     /// <summary>
     /// Closes the gripper fully
     /// </summary>
-    /// <param name="force">Force to apply in 1/10 Newtons</param>
-    /// <returns>True if the command was sent successfully</returns>
+    /// <param name="force">Force to apply during the close action (in 1/10 Newtons). Uses defaultForce if negative.</param>
+    /// <returns>True if the command was successfully sent via Modbus, false otherwise.</returns>
     public bool CloseGripper(int force = -1)
     {
-        if (force < 0) force = defaultForce;
+        if (force < 0) force = defaultForce; // Use default if not specified
 
         if (!client.Connected && !OpenConnection())
         {
@@ -205,12 +218,12 @@ public class GripperController : MonoBehaviour
     /// <summary>
     /// Moves the gripper to a specific width
     /// </summary>
-    /// <param name="width">Target width in 1/10 millimeters</param>
-    /// <param name="force">Force to apply in 1/10 Newtons</param>
-    /// <returns>True if the command was sent successfully</returns>
+    /// <param name="width">Target width for the gripper jaws (in 1/10 millimeters). Clamped between 0 and max width.</param>
+    /// <param name="force">Force to apply during the move action (in 1/10 Newtons). Uses defaultForce if negative.</param>
+    /// <returns>True if the command was successfully sent via Modbus, false otherwise.</returns>
     public bool MoveGripper(int width, int force = -1)
     {
-        if (force < 0) force = defaultForce;
+        if (force < 0) force = defaultForce; // Use default if not specified
 
         if (!client.Connected && !OpenConnection())
         {
@@ -240,11 +253,11 @@ public class GripperController : MonoBehaviour
     /// <summary>
     /// Coroutine that opens the gripper and waits for completion
     /// </summary>
-    /// <param name="force">Force to apply in 1/10 Newtons</param>
-    /// <returns>IEnumerator for coroutine</returns>
+    /// <param name="force">Force to apply during the open action (in 1/10 Newtons). Uses defaultForce if negative.</param>
+    /// <returns>IEnumerator for use in StartCoroutine.</returns>
     public IEnumerator OpenGripperAndWait(int force = -1)
     {
-        if (!OpenGripper(force))
+        if (!OpenGripper(force)) // Attempt to send the command
         {
             yield break;
         }
@@ -263,11 +276,11 @@ public class GripperController : MonoBehaviour
     /// <summary>
     /// Coroutine that closes the gripper and waits for completion
     /// </summary>
-    /// <param name="force">Force to apply in 1/10 Newtons</param>
-    /// <returns>IEnumerator for coroutine</returns>
+    /// <param name="force">Force to apply during the close action (in 1/10 Newtons). Uses defaultForce if negative.</param>
+    /// <returns>IEnumerator for use in StartCoroutine.</returns>
     public IEnumerator CloseGripperAndWait(int force = -1)
     {
-        if (!CloseGripper(force))
+        if (!CloseGripper(force)) // Attempt to send the command
         {
             yield break;
         }
@@ -286,12 +299,12 @@ public class GripperController : MonoBehaviour
     /// <summary>
     /// Coroutine that moves the gripper to a specific width and waits for completion
     /// </summary>
-    /// <param name="width">Target width in 1/10 millimeters</param>
-    /// <param name="force">Force to apply in 1/10 Newtons</param>
-    /// <returns>IEnumerator for coroutine</returns>
+    /// <param name="width">Target width for the gripper jaws (in 1/10 millimeters).</param>
+    /// <param name="force">Force to apply during the move action (in 1/10 Newtons). Uses defaultForce if negative.</param>
+    /// <returns>IEnumerator for use in StartCoroutine.</returns>
     public IEnumerator MoveGripperAndWait(int width, int force = -1)
     {
-        if (!MoveGripper(width, force))
+        if (!MoveGripper(width, force)) // Attempt to send the command
         {
             yield break;
         }

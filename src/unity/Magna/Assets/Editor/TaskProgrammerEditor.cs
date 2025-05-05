@@ -4,14 +4,25 @@ using System.Collections.Generic;
 using System.IO; // Required for Path and Directory operations
 
 // Custom Editor for the TaskProgrammer component
+/// <summary>
+/// Custom Editor for the <see cref="TaskProgrammer"/> component.
+/// Provides an enhanced Inspector experience for managing task sequences,
+/// including editing the assigned <see cref="TaskSequenceSO"/> directly.
+/// </summary>
 [CustomEditor(typeof(TaskProgrammer))]
 public class TaskProgrammerEditor : Editor
 {
-    private SerializedProperty activeSequenceProp;
-    private SerializedObject activeSequenceSerializedObject; // To edit the SO directly
+    // Serialized properties for the TaskProgrammer component itself
+    private SerializedProperty activeSequenceProp; // Reference to the TaskSequenceSO asset
+
+    // Serialized object and properties for the *referenced* TaskSequenceSO asset
+    private SerializedObject activeSequenceSerializedObject; // Allows editing the SO asset
     private SerializedProperty sequenceTasksListProp;      // The 'tasks' list within the SO
     private SerializedProperty sequenceDescriptionProp;    // The 'description' field within the SO
 
+    /// <summary>
+    /// Called when the editor is enabled. Finds the necessary serialized properties.
+    /// </summary>
     private void OnEnable()
     {
         // Find the property for the SO reference in TaskProgrammer
@@ -21,10 +32,14 @@ public class TaskProgrammerEditor : Editor
     }
 
     // Gets the SerializedObject and properties for the currently assigned SO
+    /// <summary>
+    /// Updates the internal state based on the currently assigned TaskSequenceSO asset.
+    /// Creates a SerializedObject for the asset and finds its relevant properties ('tasks', 'description').
+    /// </summary>
     private void UpdateActiveSequenceEditorState()
     {
-        activeSequenceSerializedObject = null;
-        sequenceTasksListProp = null;
+        activeSequenceSerializedObject = null; // Reset
+        sequenceTasksListProp = null;      // Reset
         sequenceDescriptionProp = null; // Reset description prop as well
 
         TaskSequenceSO currentSequence = activeSequenceProp.objectReferenceValue as TaskSequenceSO;
@@ -39,9 +54,12 @@ public class TaskProgrammerEditor : Editor
         }
     }
 
+    /// <summary>
+    /// Draws the custom Inspector GUI for the TaskProgrammer component.
+    /// </summary>
     public override void OnInspectorGUI()
     {
-        // Update the TaskProgrammer's serialized object
+        // Update the TaskProgrammer's serialized object representation
         serializedObject.Update();
 
         // Draw default fields EXCEPT the script and the sequence reference
@@ -143,11 +161,14 @@ public class TaskProgrammerEditor : Editor
     }
 
     // --- ADD HELPER METHOD ---
+    /// <summary>
+    /// Creates a new TaskSequenceSO asset in the project, typically within "Assets/TaskSequences".
+    /// </summary>
     private void CreateNewTaskSequenceAsset()
     {
         TaskSequenceSO asset = ScriptableObject.CreateInstance<TaskSequenceSO>();
 
-        // Suggest a path, ensure directory exists
+        // Define a recommended path and ensure the directory exists
         string relativeDirectory = "Assets/TaskSequences"; // Recommend creating this folder
         string fullDirectoryPath = Path.Combine(Directory.GetCurrentDirectory(), relativeDirectory);
 
