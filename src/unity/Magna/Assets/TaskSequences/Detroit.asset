@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1fd4ff1b76d88f45b586566db872803, type: 3}
+  m_Name: Detroit
+  m_EditorClassIdentifier: 
+  description: A sequence of tasks.
+  tasks:
+  - rid: 4887017232175202304
+  - rid: 4887017232175202305
+  references:
+    version: 2
+    RefIds:
+    - rid: 4887017232175202304
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: 0.3743209, y: 0.35000002, z: -0.6099285}
+    - rid: 4887017232175202305
+      type: {class: MovementTask, ns: , asm: Assembly-CSharp}
+      data:
+        taskType: 0
+        delayAfterAction: 0.5
+        targetPosition: {x: -0.4116456, y: 0.35, z: -0.6099285}

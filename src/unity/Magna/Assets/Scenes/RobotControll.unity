@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.45076698, g: 0.49892712, b: 0.565235, a: 1}
+  m_IndirectSpecularColor: {r: 0.45076692, g: 0.49892706, b: 0.5652337, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -330,7 +330,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 251167600}
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -3, y: 0.5, z: -2}
+  m_LocalPosition: {x: -2.13, y: 0.523, z: -1.728}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -432,9 +432,9 @@ MonoBehaviour:
   gripperController: {fileID: 10410093}
   nativeAvatar: {fileID: 114951219678678768}
   udpCommComponent: {fileID: 4706292499343406789}
-  activeTaskSequence: {fileID: 11400000, guid: e4dcdcc03555780418384b1723f7c42c, type: 2}
+  activeTaskSequence: {fileID: 11400000, guid: 00237869a6dfed8429a26a6569628f64, type: 2}
   executeOnStart: 1
-  repeatSequence: 0
+  repeatSequence: 1
   movementSpeed: 0.25
   movementSmoothTime: 0.3
   minDistanceToObstacle: 0.3
@@ -442,6 +442,8 @@ MonoBehaviour:
   attractionStrength: 1
   defaultPosition: {x: 0, y: 0.5, z: -0.2}
   startDelayAfterConnection: 0.5
+  testingMode: 1
+  autoSimulateConnection: 1
 --- !u!4 &522346867
 Transform:
   m_ObjectHideFlags: 0
@@ -1236,7 +1238,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4706292499343406840}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aebbfea5f883b8d41b5c868cb87605d2, type: 3}
   m_Name: 

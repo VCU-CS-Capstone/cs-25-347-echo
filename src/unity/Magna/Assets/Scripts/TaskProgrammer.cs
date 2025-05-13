@@ -156,6 +156,12 @@ public class TaskProgrammer : MonoBehaviour
     [Header("Connection Settings")]
     [SerializeField, Tooltip("Delay in seconds after connection is established before starting task execution")]
     private float startDelayAfterConnection = 0.5f;
+    
+    [Header("Testing Options")]
+    [SerializeField, Tooltip("If enabled, bypasses robot connection checks for testing")]
+    private bool testingMode = false;
+    [SerializeField, Tooltip("Auto-simulate connection when in testing mode")]
+    private bool autoSimulateConnection = true;
 
     private bool isExecuting = false;
     private bool isUdpConnected = false;
@@ -203,12 +209,37 @@ public class TaskProgrammer : MonoBehaviour
         if (udpCommComponent == null)
             udpCommComponent = FindObjectOfType<UDPCOMM>();
 
-        StartCoroutine(WaitForUdpConnection());
+        // If in testing mode and we should auto-simulate connection
+        if (testingMode && autoSimulateConnection)
+        {
+            Debug.Log("TaskProgrammer: Testing mode enabled - simulating connection");
+            isUdpConnected = true;
+            
+            if (executeOnStart && activeTaskSequence != null && activeTaskSequence.tasks.Count > 0)
+                ExecuteTasks();
+        }
+        else
+        {
+            // Normal initialization with real connection
+            StartCoroutine(WaitForUdpConnection());
+        }
     }
 
     private IEnumerator WaitForUdpConnection()
     {
         yield return new WaitForSeconds(1.0f);
+
+        // If testing mode is enabled during the wait, exit and simulate connection
+        if (testingMode)
+        {
+            Debug.Log("TaskProgrammer: Testing mode enabled - simulating connection");
+            isUdpConnected = true;
+            
+            if (executeOnStart && activeTaskSequence != null && activeTaskSequence.tasks.Count > 0)
+                ExecuteTasks();
+                
+            yield break;
+        }
 
         float componentWait = 0f, componentMax = 10f;
         while (udpCommComponent == null && componentWait < componentMax)
@@ -219,19 +250,32 @@ public class TaskProgrammer : MonoBehaviour
         }
         if (udpCommComponent == null)
         {
-            Debug.LogError($"UDPCOMM not found after {componentMax} seconds.");
+            Debug.LogWarning($"UDPCOMM not found after {componentMax} seconds. {(testingMode ? "Continuing in test mode" : "Aborting task execution")}.");
+            if (testingMode)
+            {
+                isUdpConnected = true;
+                if (executeOnStart && activeTaskSequence != null && activeTaskSequence.tasks.Count > 0)
+                    ExecuteTasks();
+            }
             yield break;
         }
 
         float connWait = 0f;
         while (connWait < connectionMaxWaitTime && !udpCommComponent.IsConnectionEstablished)
         {
+            if (testingMode)
+            {
+                Debug.Log("TaskProgrammer: Testing mode enabled - simulating connection");
+                break;
+            }
+            
             if (connWait % 5 < 0.5f)
                 Debug.Log($"Waiting for EGM connection... ({connWait:F1}s)");
             connWait += 0.5f;
             yield return new WaitForSeconds(0.5f);
         }
-        if (!udpCommComponent.IsConnectionEstablished)
+        
+        if (!udpCommComponent.IsConnectionEstablished && !testingMode)
         {
             Debug.LogError("Connection timed out. Aborting task execution.");
             yield break;
@@ -256,12 +300,14 @@ public class TaskProgrammer : MonoBehaviour
             Debug.LogWarning("No active task sequence or tasks to execute!");
             return;
         }
-        if (!isUdpConnected)
+        
+        if (!isUdpConnected && !testingMode)
         {
             executeOnStart = true;
             StartCoroutine(WaitForUdpConnection());
             return;
         }
+        
         if (!isExecuting)
         {
             isExecuting = true;
@@ -542,7 +588,7 @@ public class TaskProgrammer : MonoBehaviour
 
     /// <summary>Checks if the UDP connection to the robot is established and active.</summary>
     /// <returns>True if connected, false otherwise.</returns>
-    public bool IsUdpConnected() => udpCommComponent != null && isUdpConnected && udpCommComponent.IsConnectionEstablished;
+    public bool IsUdpConnected() => testingMode || (udpCommComponent != null && isUdpConnected && udpCommComponent.IsConnectionEstablished);
 
     /// <summary>
     /// Adds a new MovementTask to the sequence using the current position of the target object.
